@@ -19,8 +19,11 @@ def write_config(data):
 def index():
     config = read_config()
     if request.method == 'POST':
-        config['imdb_list_url'] = request.form['imdb_list_url']
+        config['imdb_movies_list_url'] = request.form['imdb_movies_list_url']
+        config['imdb_series_list_url'] = request.form['imdb_series_list_url']
+        config['radarr_url'] = request.form['radarr_url']
         config['radarr_api_key'] = request.form['radarr_api_key']
+        config['sonarr_url'] = request.form['sonarr_url']
         config['sonarr_api_key'] = request.form['sonarr_api_key']
         config['movies_min_year'] = int(request.form['movies_min_year'])
         config['movies_max_year'] = int(request.form['movies_max_year'])
