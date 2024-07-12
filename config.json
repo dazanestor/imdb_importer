@@ -5,6 +5,7 @@
     "radarr_api_key": "",
     "sonarr_url": "http://localhost:8989",
     "sonarr_api_key": "",
+    "redis_ip": "localhost",
     "movies_min_year": 2000,
     "movies_max_year": 2024,
     "movies_min_rating": 7.0,
