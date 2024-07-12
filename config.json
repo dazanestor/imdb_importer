@@ -1,0 +1,11 @@
+{
+    "imdb_list_url": "https://www.imdb.com/list/ls000000000/",
+    "radarr_api_key": "",
+    "sonarr_api_key": "",
+    "movies_min_year": 2000,
+    "movies_max_year": 2024,
+    "movies_min_rating": 7.0,
+    "series_min_year": 2000,
+    "series_max_year": 2024,
+    "series_min_rating": 7.0
+}
