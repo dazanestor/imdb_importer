@@ -24,7 +24,8 @@ def read_config():
 @app.task
 def run_sync_movies():
     config = read_config()
-    imdb_list_url = config['imdb_list_url']
+    imdb_list_url = config['imdb_movies_list_url']
+    radarr_url = config['radarr_url']
     radarr_api_key = config['radarr_api_key']
     movies_min_year = config['movies_min_year']
     movies_max_year = config['movies_max_year']
@@ -36,12 +37,13 @@ def run_sync_movies():
     filtered_movies = filter_movies(movies, movies_min_year, movies_max_year, movies_min_rating)
 
     with ThreadPoolExecutor() as executor:
-        results = executor.map(lambda movie: add_to_radarr(movie, radarr_api_key), filtered_movies)
+        results = executor.map(lambda movie: add_to_radarr(movie, radarr_url, radarr_api_key), filtered_movies)
 
 @app.task
 def run_sync_series():
     config = read_config()
-    imdb_list_url = config['imdb_list_url']
+    imdb_list_url = config['imdb_series_list_url']
+    sonarr_url = config['sonarr_url']
     sonarr_api_key = config['sonarr_api_key']
     series_min_year = config['series_min_year']
     series_max_year = config['series_max_year']
@@ -53,7 +55,7 @@ def run_sync_series():
     filtered_series = filter_series(series, series_min_year, series_max_year, series_min_rating)
 
     with ThreadPoolExecutor() as executor:
-        results = executor.map(lambda serie: add_to_sonarr(serie, sonarr_api_key), filtered_series)
+        results = executor.map(lambda serie: add_to_sonarr(serie, sonarr_url, sonarr_api_key), filtered_series)
 
 def fetch_imdb_list(list_url):
     response = requests.get(list_url)
@@ -65,7 +67,7 @@ def filter_movies(movies, min_year, max_year, min_rating):
 def filter_series(series, min_year, max_year, min_rating):
     return [serie for serie in series if min_year <= serie['year'] <= max_year and serie['rating'] >= min_rating]
 
-def add_to_radarr(movie, radarr_api_key):
+def add_to_radarr(movie, radarr_url, radarr_api_key):
     payload = {
         "title": movie['title'],
         "year": movie['year'],
@@ -79,10 +81,10 @@ def add_to_radarr(movie, radarr_api_key):
         }
     }
     headers = {"X-Api-Key": radarr_api_key}
-    response = requests.post(f"http://localhost:7878/api/v3/movie", json=payload, headers=headers)
+    response = requests.post(f"{radarr_url}/api/v3/movie", json=payload, headers=headers)
     return response.status_code
 
-def add_to_sonarr(serie, sonarr_api_key):
+def add_to_sonarr(serie, sonarr_url, sonarr_api_key):
     payload = {
         "title": serie['title'],
         "year": serie['year'],
@@ -96,5 +98,5 @@ def add_to_sonarr(serie, sonarr_api_key):
         }
     }
     headers = {"X-Api-Key": sonarr_api_key}
-    response = requests.post(f"http://localhost:8989/api/v3/series", json=payload, headers=headers)
+    response = requests.post(f"{sonarr_url}/api/v3/series", json=payload, headers=headers)
     return response.status_code
