@@ -4,7 +4,16 @@ import requests
 import json
 from concurrent.futures import ThreadPoolExecutor
 
-app = Celery('tasks', broker='redis://localhost:6379/0')
+def create_celery_app(redis_ip):
+    return Celery('tasks', broker=f'redis://{redis_ip}:6379/0')
+
+def read_config():
+    with open('config.json', 'r') as f:
+        return json.load(f)
+
+config = read_config()
+app = create_celery_app(config['redis_ip'])
+
 app.conf.beat_schedule = {
     'run-sync-movies-every-12-hours': {
         'task': 'tasks.run_sync_movies',
@@ -16,10 +25,6 @@ app.conf.beat_schedule = {
     },
 }
 app.conf.timezone = 'UTC'
-
-def read_config():
-    with open('config.json', 'r') as f:
-        return json.load(f)
 
 @app.task
 def run_sync_movies():
