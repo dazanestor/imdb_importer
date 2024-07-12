@@ -10,12 +10,24 @@
         <h1>Configuración de IMDb List Sync</h1>
         <form method="post">
             <div class="form-group">
-                <label for="imdb_list_url">URL de la Lista IMDb:</label>
-                <input type="text" class="form-control" id="imdb_list_url" name="imdb_list_url" value="{{ config['imdb_list_url'] }}">
+                <label for="imdb_movies_list_url">URL de la Lista de Películas IMDb:</label>
+                <input type="text" class="form-control" id="imdb_movies_list_url" name="imdb_movies_list_url" value="{{ config['imdb_movies_list_url'] }}">
+            </div>
+            <div class="form-group">
+                <label for="imdb_series_list_url">URL de la Lista de Series IMDb:</label>
+                <input type="text" class="form-control" id="imdb_series_list_url" name="imdb_series_list_url" value="{{ config['imdb_series_list_url'] }}">
+            </div>
+            <div class="form-group">
+                <label for="radarr_url">URL de Radarr:</label>
+                <input type="text" class="form-control" id="radarr_url" name="radarr_url" value="{{ config['radarr_url'] }}">
             </div>
             <div class="form-group">
                 <label for="radarr_api_key">Clave API de Radarr:</label>
                 <input type="text" class="form-control" id="radarr_api_key" name="radarr_api_key" value="{{ config['radarr_api_key'] }}">
+            </div>
+            <div class="form-group">
+                <label for="sonarr_url">URL de Sonarr:</label>
+                <input type="text" class="form-control" id="sonarr_url" name="sonarr_url" value="{{ config['sonarr_url'] }}">
             </div>
             <div class="form-group">
                 <label for="sonarr_api_key">Clave API de Sonarr:</label>
