@@ -1,6 +1,9 @@
 {
-    "imdb_list_url": "https://www.imdb.com/list/ls000000000/",
+    "imdb_movies_list_url": "https://www.imdb.com/list/ls000000000/",
+    "imdb_series_list_url": "https://www.imdb.com/list/ls000000001/",
+    "radarr_url": "http://localhost:7878",
     "radarr_api_key": "",
+    "sonarr_url": "http://localhost:8989",
     "sonarr_api_key": "",
     "movies_min_year": 2000,
     "movies_max_year": 2024,
