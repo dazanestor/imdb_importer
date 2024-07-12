@@ -25,6 +25,7 @@ def index():
         config['radarr_api_key'] = request.form['radarr_api_key']
         config['sonarr_url'] = request.form['sonarr_url']
         config['sonarr_api_key'] = request.form['sonarr_api_key']
+        config['redis_ip'] = request.form['redis_ip']
         config['movies_min_year'] = int(request.form['movies_min_year'])
         config['movies_max_year'] = int(request.form['movies_max_year'])
         config['movies_min_rating'] = float(request.form['movies_min_rating'])
