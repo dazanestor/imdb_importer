@@ -90,6 +90,7 @@ def run_sync_movies():
     filtered_movies = filter_items(movies_list, movies_min_year, movies_max_year, movies_min_rating)
     imported_movies = process_items(filtered_movies, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, add_to_radarr)
     r.set('imported_movies', json.dumps(imported_movies))
+    logger.info(f"Películas importadas: {imported_movies}")
 
 @app.task
 def run_sync_series():
@@ -112,6 +113,7 @@ def run_sync_series():
     filtered_series = filter_items(series_list, series_min_year, series_max_year, series_min_rating)
     imported_series = process_items(filtered_series, sonarr_url, sonarr_api_key, quality_profile_id, root_folder_path, add_to_sonarr)
     r.set('imported_series', json.dumps(imported_series))
+    logger.info(f"Series importadas: {imported_series}")
 
 def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path):
     payload = {
