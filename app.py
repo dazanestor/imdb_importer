@@ -1,11 +1,34 @@
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
+from marshmallow import Schema, fields, ValidationError
 import json
 import requests
 from tasks import run_sync_movies, run_sync_series
 import redis
+import logging
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
+
+# Configuración de logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Definición de schemas para validación
+class ConfigSchema(Schema):
+    radarr_url = fields.Url(required=True)
+    radarr_api_key = fields.Str(required=True)
+    sonarr_url = fields.Url(required=True)
+    sonarr_api_key = fields.Str(required=True)
+    movies_min_year = fields.Int(required=True)
+    movies_max_year = fields.Int(required=True)
+    movies_min_rating = fields.Float(required=True)
+    series_min_year = fields.Int(required=True)
+    series_max_year = fields.Int(required=True)
+    series_min_rating = fields.Float(required=True)
+    radarr_quality_profile_id = fields.Int(required=True)
+    radarr_root_folder_path = fields.Str(required=True)
+    sonarr_quality_profile_id = fields.Int(required=True)
+    sonarr_root_folder_path = fields.Str(required=True)
 
 def read_config():
     with open('config.json', 'r') as f:
@@ -46,23 +69,31 @@ def index():
     imported_series = json.loads(r.get('imported_series') or '[]')
 
     if request.method == 'POST':
-        config['radarr_url'] = request.form['radarr_url']
-        config['radarr_api_key'] = request.form['radarr_api_key']
-        config['sonarr_url'] = request.form['sonarr_url']
-        config['sonarr_api_key'] = request.form['sonarr_api_key']
-        config['movies_min_year'] = int(request.form['movies_min_year'])
-        config['movies_max_year'] = int(request.form['movies_max_year'])
-        config['movies_min_rating'] = float(request.form['movies_min_rating'])
-        config['series_min_year'] = int(request.form['series_min_year'])
-        config['series_max_year'] = int(request.form['series_max_year'])
-        config['series_min_rating'] = float(request.form['series_min_rating'])
-        config['radarr_quality_profile_id'] = int(request.form['radarr_quality_profile_id'])
-        config['radarr_root_folder_path'] = request.form['radarr_root_folder_path']
-        config['sonarr_quality_profile_id'] = int(request.form['sonarr_quality_profile_id'])
-        config['sonarr_root_folder_path'] = request.form['sonarr_root_folder_path']
-        write_config(config)
-        flash('Configuración guardada exitosamente!')
-        return redirect(url_for('index'))
+        form_data = {
+            "radarr_url": request.form['radarr_url'],
+            "radarr_api_key": request.form['radarr_api_key'],
+            "sonarr_url": request.form['sonarr_url'],
+            "sonarr_api_key": request.form['sonarr_api_key'],
+            "movies_min_year": int(request.form['movies_min_year']),
+            "movies_max_year": int(request.form['movies_max_year']),
+            "movies_min_rating": float(request.form['movies_min_rating']),
+            "series_min_year": int(request.form['series_min_year']),
+            "series_max_year": int(request.form['series_max_year']),
+            "series_min_rating": float(request.form['series_min_rating']),
+            "radarr_quality_profile_id": int(request.form['radarr_quality_profile_id']),
+            "radarr_root_folder_path": request.form['radarr_root_folder_path'],
+            "sonarr_quality_profile_id": int(request.form['sonarr_quality_profile_id']),
+            "sonarr_root_folder_path": request.form['sonarr_root_folder_path']
+        }
+        schema = ConfigSchema()
+        try:
+            config = schema.load(form_data)
+            write_config(config)
+            flash('Configuración guardada exitosamente!')
+            return redirect(url_for('index'))
+        except ValidationError as err:
+            flash(f"Errores de validación: {err.messages}")
+    
     return render_template('index.html', config=config, radarr_profiles=radarr_profiles, radarr_paths=radarr_paths, sonarr_profiles=sonarr_profiles, sonarr_paths=sonarr_paths, imported_movies=imported_movies, imported_series=imported_series)
 
 @app.route('/run-sync-movies', methods=['POST'])
