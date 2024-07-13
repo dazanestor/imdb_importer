@@ -138,7 +138,8 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
 
     response = requests.post(f"{radarr_url}/api/v3/movie", json=payload, headers=headers)
     if response.status_code != 201:
-        raise Exception(f"Error adding to Radarr: {response.status_code} {response.reason}")
+        logger.error(f"Error adding to Radarr: {response.status_code} {response.reason} {response.text}")
+        raise Exception(f"Error adding to Radarr: {response.status_code} {response.reason} {response.text}")
     return payload
 
 def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_folder_path):
@@ -164,5 +165,6 @@ def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_fo
 
     response = requests.post(f"{sonarr_url}/api/v3/series", json=payload, headers=headers)
     if response.status_code != 201:
-        raise Exception(f"Error adding to Sonarr: {response.status_code} {response.reason}")
+        logger.error(f"Error adding to Sonarr: {response.status_code} {response.reason} {response.text}")
+        raise Exception(f"Error adding to Sonarr: {response.status_code} {response.reason} {response.text}")
     return payload
