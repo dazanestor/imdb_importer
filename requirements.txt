@@ -4,3 +4,4 @@ requests==2.27.1
 beautifulsoup4==4.9.3
 celery==5.2.3
 redis==4.1.0
+marshmallow==3.13.0
