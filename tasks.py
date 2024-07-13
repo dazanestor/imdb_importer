@@ -43,16 +43,13 @@ def fetch_imdb_list(url):
     
     soup = BeautifulSoup(response.text, 'html.parser')
 
-    # Encuentra el script que contiene el JSON-LD
     script = soup.find('script', type='application/ld+json')
     if script is None:
         raise Exception("No se encontró el script JSON-LD en la página")
 
-    # Carga el JSON-LD
     data = json.loads(script.string)
     items = []
 
-    # Extrae la información de las películas y series
     for item in data.get('itemListElement', []):
         media_item = item.get('item', {})
         title = media_item.get('name')
@@ -79,8 +76,12 @@ def filter_items(items, min_year, max_year, min_rating, tmdb_api_key, media_type
     filtered_items = []
     for item in items:
         year = fetch_item_year_tmdb(item['title'], tmdb_api_key, media_type)
-        if year and min_year <= int(year) <= max_year and item['rating'] >= min_rating:
-            filtered_items.append(item)
+        if year:
+            logger.info(f"Item: {item['title']}, Year: {year}, Rating: {item['rating']}")
+            if min_year <= int(year) <= max_year and item['rating'] >= min_rating:
+                filtered_items.append(item)
+        else:
+            logger.warning(f"Year not found for {item['title']}")
     return filtered_items
 
 def process_items(items, url, api_key, quality_profile_id, root_folder_path, add_function):
@@ -137,10 +138,11 @@ def run_sync_series():
     logger.info(f"Series importadas: {imported_series}")
 
 def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path):
+    logger.info(f"Adding movie to Radarr: {movie['title']}")
     payload = {
         "title": movie['title'],
-        "year": 0,  # Ya no se usa el año
-        "tmdbId": movie.get('tmdb_id', 0),  # Asegúrate de tener el ID correcto aquí
+        "year": 0,
+        "tmdbId": movie.get('tmdb_id', 0),
         "qualityProfileId": quality_profile_id,
         "titleSlug": movie['title'].lower().replace(' ', '-'),
         "monitored": True,
@@ -151,10 +153,9 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
     }
     headers = {"X-Api-Key": radarr_api_key}
 
-    # Verifica si la película ya está en Radarr
     response = requests.get(f"{radarr_url}/api/v3/movie/lookup?term={payload['title']}", headers=headers)
     if response.status_code == 200 and response.json():
-        logger.info(f"Película ya existe en Radarr: {payload['title']}")
+        logger.info(f"Movie already exists in Radarr: {payload['title']}")
         return payload
 
     response = requests.post(f"{radarr_url}/api/v3/movie", json=payload, headers=headers)
@@ -164,10 +165,11 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
     return payload
 
 def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_folder_path):
+    logger.info(f"Adding series to Sonarr: {serie['title']}")
     payload = {
         "title": serie['title'],
-        "year": 0,  # Ya no se usa el año
-        "tvdbId": serie.get('tvdb_id', 0),  # Asegúrate de tener el ID correcto aquí
+        "year": 0,
+        "tvdbId": serie.get('tvdb_id', 0),
         "qualityProfileId": quality_profile_id,
         "titleSlug": serie['title'].lower().replace(' ', '-'),
         "monitored": True,
@@ -178,10 +180,9 @@ def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_fo
     }
     headers = {"X-Api-Key": sonarr_api_key}
 
-    # Verifica si la serie ya está en Sonarr
     response = requests.get(f"{sonarr_url}/api/v3/series/lookup?term={payload['title']}", headers=headers)
     if response.status_code == 200 and response.json():
-        logger.info(f"Serie ya existe en Sonarr: {payload['title']}")
+        logger.info(f"Series already exists in Sonarr: {payload['title']}")
         return payload
 
     response = requests.post(f"{sonarr_url}/api/v3/series", json=payload, headers=headers)
