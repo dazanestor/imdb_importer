@@ -13,6 +13,6 @@
     "radarr_root_folder_path": "/movies",
     "sonarr_quality_profile_id": 1,
     "sonarr_root_folder_path": "/series",
-    "omdb_api_key": "your_omdb_api_key",
+    "tmdb_api_key": "your_tmdb_api_key",
     "redis_ip": "localhost"
 }
