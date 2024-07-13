@@ -29,7 +29,7 @@ class ConfigSchema(Schema):
     radarr_root_folder_path = fields.Str(required=True)
     sonarr_quality_profile_id = fields.Int(required=True)
     sonarr_root_folder_path = fields.Str(required=True)
-    omdb_api_key = fields.Str(required=True)
+    tmdb_api_key = fields.Str(required=True)
 
 def read_config():
     with open('config.json', 'r') as f:
@@ -91,7 +91,7 @@ def index():
             "radarr_root_folder_path": request.form['radarr_root_folder_path'],
             "sonarr_quality_profile_id": int(request.form['sonarr_quality_profile_id']),
             "sonarr_root_folder_path": request.form['sonarr_root_folder_path'],
-            "omdb_api_key": request.form['omdb_api_key']
+            "tmdb_api_key": request.form['tmdb_api_key']
         }
         schema = ConfigSchema()
         try:
