@@ -60,10 +60,16 @@ def index():
     sonarr_profiles, sonarr_paths = [], []
     
     if config['radarr_api_key'] and config['radarr_url']:
-        radarr_profiles, radarr_paths = get_radarr_profiles_and_paths(config['radarr_url'], config['radarr_api_key'])
+        try:
+            radarr_profiles, radarr_paths = get_radarr_profiles_and_paths(config['radarr_url'], config['radarr_api_key'])
+        except requests.exceptions.RequestException as e:
+            flash(f"Error al obtener perfiles y rutas de Radarr: {str(e)}")
     
     if config['sonarr_api_key'] and config['sonarr_url']:
-        sonarr_profiles, sonarr_paths = get_sonarr_profiles_and_paths(config['sonarr_url'], config['sonarr_api_key'])
+        try:
+            sonarr_profiles, sonarr_paths = get_sonarr_profiles_and_paths(config['sonarr_url'], config['sonarr_api_key'])
+        except requests.exceptions.RequestException as e:
+            flash(f"Error al obtener perfiles y rutas de Sonarr: {str(e)}")
     
     imported_movies = json.loads(r.get('imported_movies') or '[]')
     imported_series = json.loads(r.get('imported_series') or '[]')
@@ -98,12 +104,14 @@ def index():
 
 @app.route('/run-sync-movies', methods=['POST'])
 def run_sync_movies_now():
+    logger.info("Iniciando sincronización de películas...")
     run_sync_movies.delay()
     flash('Sincronización de películas iniciada!')
     return redirect(url_for('index'))
 
 @app.route('/run-sync-series', methods=['POST'])
 def run_sync_series_now():
+    logger.info("Iniciando sincronización de series...")
     run_sync_series.delay()
     flash('Sincronización de series iniciada!')
     return redirect(url_for('index'))
