@@ -42,27 +42,45 @@ def fetch_imdb_list(url):
         raise Exception(f"Error fetching IMDb list: {response.status_code} {response.reason}")
     
     soup = BeautifulSoup(response.text, 'html.parser')
+
+    # Encuentra el script que contiene el JSON-LD
+    script = soup.find('script', type='application/ld+json')
+    if script is None:
+        raise Exception("No se encontró el script JSON-LD en la página")
+
+    # Carga el JSON-LD
+    data = json.loads(script.string)
     items = []
 
-    for item in soup.select('table.chart.full-width tr'):
-        title_column = item.select('td.titleColumn')
-        rating_column = item.select('td.imdbRating')
-
-        if title_column and rating_column:
-            title = title_column[0].a.text
-            year = title_column[0].span.text.strip('()')
-            rating = rating_column[0].strong.text if rating_column[0].strong else None
-            
+    # Extrae la información de las películas y series
+    for item in data.get('itemListElement', []):
+        media_item = item.get('item', {})
+        title = media_item.get('name')
+        rating = media_item.get('aggregateRating', {}).get('ratingValue')
+        
+        if title and rating:
             items.append({
                 "title": title,
-                "year": int(year),
-                "rating": float(rating) if rating else None
+                "rating": float(rating)
             })
 
     return items
 
-def filter_items(items, min_year, max_year, min_rating):
-    return [item for item in items if min_year <= item['year'] <= max_year and (item['rating'] is None or item['rating'] >= min_rating)]
+def fetch_item_year(title, omdb_api_key):
+    url = f"http://www.omdbapi.com/?t={requests.utils.quote(title)}&apikey={omdb_api_key}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        return data.get('Year')
+    return None
+
+def filter_items(items, min_year, max_year, min_rating, omdb_api_key):
+    filtered_items = []
+    for item in items:
+        year = fetch_item_year(item['title'], omdb_api_key)
+        if year and min_year <= int(year) <= max_year and item['rating'] >= min_rating:
+            filtered_items.append(item)
+    return filtered_items
 
 def process_items(items, url, api_key, quality_profile_id, root_folder_path, add_function):
     with ThreadPoolExecutor() as executor:
@@ -79,6 +97,7 @@ def run_sync_movies():
     movies_min_year = config['movies_min_year']
     movies_max_year = config['movies_max_year']
     movies_min_rating = config['movies_min_rating']
+    omdb_api_key = config['omdb_api_key']
 
     try:
         logger.info("Obteniendo lista de películas de IMDb...")
@@ -87,7 +106,7 @@ def run_sync_movies():
         logger.error(f"Error fetching IMDb movies list: {e}")
         return
 
-    filtered_movies = filter_items(movies_list, movies_min_year, movies_max_year, movies_min_rating)
+    filtered_movies = filter_items(movies_list, movies_min_year, movies_max_year, movies_min_rating, omdb_api_key)
     imported_movies = process_items(filtered_movies, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, add_to_radarr)
     r.set('imported_movies', json.dumps(imported_movies))
     logger.info(f"Películas importadas: {imported_movies}")
@@ -102,6 +121,7 @@ def run_sync_series():
     series_min_year = config['series_min_year']
     series_max_year = config['series_max_year']
     series_min_rating = config['series_min_rating']
+    omdb_api_key = config['omdb_api_key']
 
     try:
         logger.info("Obteniendo lista de series de IMDb...")
@@ -110,7 +130,7 @@ def run_sync_series():
         logger.error(f"Error fetching IMDb series list: {e}")
         return
 
-    filtered_series = filter_items(series_list, series_min_year, series_max_year, series_min_rating)
+    filtered_series = filter_items(series_list, series_min_year, series_max_year, series_min_rating, omdb_api_key)
     imported_series = process_items(filtered_series, sonarr_url, sonarr_api_key, quality_profile_id, root_folder_path, add_to_sonarr)
     r.set('imported_series', json.dumps(imported_series))
     logger.info(f"Series importadas: {imported_series}")
@@ -118,7 +138,7 @@ def run_sync_series():
 def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path):
     payload = {
         "title": movie['title'],
-        "year": movie['year'],
+        "year": 0,  # Ya no se usa el año
         "tmdbId": movie.get('tmdb_id', 0),  # Asegúrate de tener el ID correcto aquí
         "qualityProfileId": quality_profile_id,
         "titleSlug": movie['title'].lower().replace(' ', '-'),
@@ -145,7 +165,7 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
 def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_folder_path):
     payload = {
         "title": serie['title'],
-        "year": serie['year'],
+        "year": 0,  # Ya no se usa el año
         "tvdbId": serie.get('tvdb_id', 0),  # Asegúrate de tener el ID correcto aquí
         "qualityProfileId": quality_profile_id,
         "titleSlug": serie['title'].lower().replace(' ', '-'),
