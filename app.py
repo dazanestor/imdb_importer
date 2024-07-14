@@ -58,6 +58,14 @@ def get_existing_titles(url, api_key, media_type):
         return [item['title'] for item in response.json()]
     return []
 
+def get_excluded_titles(url, api_key, media_type):
+    headers = {"X-Api-Key": api_key}
+    endpoint = f"{url}/api/v3/{'movie' if media_type == 'movie' else 'series'}/lookup?term=all"
+    response = requests.get(endpoint, headers=headers)
+    if response.status_code == 200:
+        return [item['title'] for item in response.json() if item['monitored'] == False]
+    return []
+
 config = read_config()
 r = redis.Redis(host=config['redis_ip'], port=6379, db=0)
 
@@ -83,8 +91,11 @@ def index():
     existing_movies = get_existing_titles(config['radarr_url'], config['radarr_api_key'], 'movie')
     existing_series = get_existing_titles(config['sonarr_url'], config['sonarr_api_key'], 'tv')
 
-    filtered_movies = [movie for movie in imported_movies if movie not in existing_movies]
-    filtered_series = [series for series in imported_series if series not in existing_series]
+    excluded_movies = get_excluded_titles(config['radarr_url'], config['radarr_api_key'], 'movie')
+    excluded_series = get_excluded_titles(config['sonarr_url'], config['sonarr_api_key'], 'tv')
+
+    filtered_movies = [movie for movie in imported_movies if movie not in existing_movies and movie not in excluded_movies]
+    filtered_series = [series for series in imported_series if series not in existing_series and series not in excluded_series]
 
     if request.method == 'POST':
         form_data = {
