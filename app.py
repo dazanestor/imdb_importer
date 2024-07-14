@@ -15,6 +15,10 @@ logger = logging.getLogger(__name__)
 
 # Definición de schemas para validación
 class ConfigSchema(Schema):
+    radarr_url = fields.Url(required=True)
+    radarr_api_key = fields.Str(required=True)
+    sonarr_url = fields.Url(required=True)
+    sonarr_api_key = fields.Str(required=True)
     movies_min_year = fields.Int(required=True)
     movies_max_year = fields.Int(required=True)
     movies_min_rating = fields.Float(required=True)
@@ -25,46 +29,27 @@ class ConfigSchema(Schema):
     radarr_root_folder_path = fields.Str(required=True)
     sonarr_quality_profile_id = fields.Int(required=True)
     sonarr_root_folder_path = fields.Str(required=True)
+    tmdb_api_key = fields.Str(required=True)
 
 def read_config():
     with open('config.json', 'r') as f:
         return json.load(f)
 
 def write_config(data):
-    config = read_config()
-    config.update(data)
     with open('config.json', 'w') as f:
-        json.dump(config, f, indent=4)
+        json.dump(data, f, indent=4)
 
-def get_radarr_profiles_and_paths():
-    config = read_config()
-    headers = {"X-Api-Key": config['radarr_api_key']}
-    profiles = requests.get(f"{config['radarr_url']}/api/v3/qualityProfile", headers=headers).json()
-    paths = requests.get(f"{config['radarr_url']}/api/v3/rootFolder", headers=headers).json()
+def get_radarr_profiles_and_paths(radarr_url, radarr_api_key):
+    headers = {"X-Api-Key": radarr_api_key}
+    profiles = requests.get(f"{radarr_url}/api/v3/qualityProfile", headers=headers).json()
+    paths = requests.get(f"{radarr_url}/api/v3/rootFolder", headers=headers).json()
     return profiles, paths
 
-def get_sonarr_profiles_and_paths():
-    config = read_config()
-    headers = {"X-Api-Key": config['sonarr_api_key']}
-    profiles = requests.get(f"{config['sonarr_url']}/api/v3/qualityProfile", headers=headers).json()
-    paths = requests.get(f"{config['sonarr_url']}/api/v3/rootFolder", headers=headers).json()
+def get_sonarr_profiles_and_paths(sonarr_url, sonarr_api_key):
+    headers = {"X-Api-Key": sonarr_api_key}
+    profiles = requests.get(f"{sonarr_url}/api/v3/qualityProfile", headers=headers).json()
+    paths = requests.get(f"{sonarr_url}/api/v3/rootFolder", headers=headers).json()
     return profiles, paths
-
-def get_existing_titles(url, api_key, media_type):
-    headers = {"X-Api-Key": api_key}
-    endpoint = f"{url}/api/v3/{'movie' if media_type == 'movie' else 'series'}"
-    response = requests.get(endpoint, headers=headers)
-    if response.status_code == 200:
-        return [item['title'] for item in response.json()]
-    return []
-
-def get_excluded_titles(url, api_key, media_type):
-    headers = {"X-Api-Key": api_key}
-    endpoint = f"{url}/api/v3/{'movie' if media_type == 'movie' else 'series'}/lookup?term=all"
-    response = requests.get(endpoint, headers=headers)
-    if response.status_code == 200:
-        return [item['title'] for item in response.json() if item['monitored'] == False]
-    return []
 
 config = read_config()
 r = redis.Redis(host=config['redis_ip'], port=6379, db=0)
@@ -75,30 +60,27 @@ def index():
     radarr_profiles, radarr_paths = [], []
     sonarr_profiles, sonarr_paths = [], []
     
-    try:
-        radarr_profiles, radarr_paths = get_radarr_profiles_and_paths()
-    except requests.exceptions.RequestException as e:
-        flash(f"Error al obtener perfiles y rutas de Radarr: {str(e)}")
+    if config['radarr_api_key'] and config['radarr_url']:
+        try:
+            radarr_profiles, radarr_paths = get_radarr_profiles_and_paths(config['radarr_url'], config['radarr_api_key'])
+        except requests.exceptions.RequestException as e:
+            flash(f"Error al obtener perfiles y rutas de Radarr: {str(e)}")
     
-    try:
-        sonarr_profiles, sonarr_paths = get_sonarr_profiles_and_paths()
-    except requests.exceptions.RequestException as e:
-        flash(f"Error al obtener perfiles y rutas de Sonarr: {str(e)}")
+    if config['sonarr_api_key'] and config['sonarr_url']:
+        try:
+            sonarr_profiles, sonarr_paths = get_sonarr_profiles_and_paths(config['sonarr_url'], config['sonarr_api_key'])
+        except requests.exceptions.RequestException as e:
+            flash(f"Error al obtener perfiles y rutas de Sonarr: {str(e)}")
     
     imported_movies = json.loads(r.get('imported_movies') or '[]')
     imported_series = json.loads(r.get('imported_series') or '[]')
 
-    existing_movies = get_existing_titles(config['radarr_url'], config['radarr_api_key'], 'movie')
-    existing_series = get_existing_titles(config['sonarr_url'], config['sonarr_api_key'], 'tv')
-
-    excluded_movies = get_excluded_titles(config['radarr_url'], config['radarr_api_key'], 'movie')
-    excluded_series = get_excluded_titles(config['sonarr_url'], config['sonarr_api_key'], 'tv')
-
-    filtered_movies = [movie for movie in imported_movies if movie not in existing_movies and movie not in excluded_movies]
-    filtered_series = [series for series in imported_series if series not in existing_series and series not in excluded_series]
-
     if request.method == 'POST':
         form_data = {
+            "radarr_url": request.form['radarr_url'],
+            "radarr_api_key": request.form['radarr_api_key'],
+            "sonarr_url": request.form['sonarr_url'],
+            "sonarr_api_key": request.form['sonarr_api_key'],
             "movies_min_year": int(request.form['movies_min_year']),
             "movies_max_year": int(request.form['movies_max_year']),
             "movies_min_rating": float(request.form['movies_min_rating']),
@@ -109,6 +91,7 @@ def index():
             "radarr_root_folder_path": request.form['radarr_root_folder_path'],
             "sonarr_quality_profile_id": int(request.form['sonarr_quality_profile_id']),
             "sonarr_root_folder_path": request.form['sonarr_root_folder_path'],
+            "tmdb_api_key": request.form['tmdb_api_key']
         }
         schema = ConfigSchema()
         try:
@@ -119,7 +102,7 @@ def index():
         except ValidationError as err:
             flash(f"Errores de validación: {err.messages}")
     
-    return render_template('index.html', config=config, radarr_profiles=radarr_profiles, radarr_paths=radarr_paths, sonarr_profiles=sonarr_profiles, sonarr_paths=sonarr_paths, imported_movies=filtered_movies, imported_series=filtered_series)
+    return render_template('index.html', config=config, radarr_profiles=radarr_profiles, radarr_paths=radarr_paths, sonarr_profiles=sonarr_profiles, sonarr_paths=sonarr_paths, imported_movies=imported_movies, imported_series=imported_series)
 
 @app.route('/run-sync-movies', methods=['POST'])
 def run_sync_movies_now():
