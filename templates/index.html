@@ -11,14 +11,6 @@
         <h1>Configuración de IMDb List Sync</h1>
         <form method="post">
             <div class="form-group">
-                <label for="radarr_url">URL de Radarr:</label>
-                <input type="text" class="form-control bg-dark text-white" id="radarr_url" name="radarr_url">
-            </div>
-            <div class="form-group">
-                <label for="radarr_api_key">Clave API de Radarr:</label>
-                <input type="text" class="form-control bg-dark text-white" id="radarr_api_key" name="radarr_api_key">
-            </div>
-            <div class="form-group">
                 <label for="radarr_quality_profile_id">Perfil de Calidad de Radarr:</label>
                 <select class="form-control bg-dark text-white" id="radarr_quality_profile_id" name="radarr_quality_profile_id">
                     {% for profile in radarr_profiles %}
@@ -35,14 +27,6 @@
                 </select>
             </div>
             <div class="form-group">
-                <label for="sonarr_url">URL de Sonarr:</label>
-                <input type="text" class="form-control bg-dark text-white" id="sonarr_url" name="sonarr_url">
-            </div>
-            <div class="form-group">
-                <label for="sonarr_api_key">Clave API de Sonarr:</label>
-                <input type="text" class="form-control bg-dark text-white" id="sonarr_api_key" name="sonarr_api_key">
-            </div>
-            <div class="form-group">
                 <label for="sonarr_quality_profile_id">Perfil de Calidad de Sonarr:</label>
                 <select class="form-control bg-dark text-white" id="sonarr_quality_profile_id" name="sonarr_quality_profile_id">
                     {% for profile in sonarr_profiles %}
@@ -57,10 +41,6 @@
                         <option value="{{ path['path'] }}" {% if path['path'] == config.get('sonarr_root_folder_path') %}selected{% endif %}>{{ path['path'] }}</option>
                     {% endfor %}
                 </select>
-            </div>
-            <div class="form-group">
-                <label for="tmdb_api_key">Clave API de TMDb:</label>
-                <input type="text" class="form-control bg-dark text-white" id="tmdb_api_key" name="tmdb_api_key">
             </div>
             <h2>Filtros para Películas</h2>
             <div class="form-group">
