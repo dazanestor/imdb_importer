@@ -76,6 +76,14 @@ def index():
     imported_series = json.loads(r.get('imported_series') or '[]')
 
     if request.method == 'POST':
+        # Depuración: imprime todos los datos del formulario enviados
+        print(request.form)
+
+        # Verifica si 'radarr_url' está en los datos del formulario
+        if 'radarr_url' not in request.form:
+            flash('Error: radarr_url no está en los datos del formulario.')
+            return redirect(url_for('index'))
+
         form_data = {
             "radarr_url": request.form['radarr_url'],
             "radarr_api_key": request.form['radarr_api_key'],
