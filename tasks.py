@@ -89,6 +89,17 @@ def process_items(items, url, api_key, quality_profile_id, root_folder_path, add
         results = executor.map(lambda item: add_function(item, url, api_key, quality_profile_id, root_folder_path), items)
         return [result['title'] for result in results if result]
 
+def check_excluded(title, excluded_titles):
+    return title.lower() in (excluded.lower() for excluded in excluded_titles)
+
+def get_excluded_titles(url, api_key, media_type):
+    headers = {"X-Api-Key": api_key}
+    endpoint = f"{url}/api/v3/{'movie' if media_type == 'movie' else 'series'}"
+    response = requests.get(endpoint, headers=headers)
+    if response.status_code == 200:
+        return [item['title'] for item in response.json() if item['monitored'] == False]
+    return []
+
 @app.task
 def run_sync_movies():
     config = read_config()
@@ -108,7 +119,10 @@ def run_sync_movies():
         logger.error(f"Error fetching IMDb movies list: {e}")
         return
 
+    excluded_movies = get_excluded_titles(radarr_url, radarr_api_key, 'movie')
     filtered_movies = filter_items(movies_list, movies_min_year, movies_max_year, movies_min_rating, tmdb_api_key, 'movie')
+    filtered_movies = [movie for movie in filtered_movies if not check_excluded(movie['title'], excluded_movies)]
+
     imported_movies = process_items(filtered_movies, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, add_to_radarr)
     r.set('imported_movies', json.dumps(imported_movies))
     logger.info(f"Películas importadas: {imported_movies}")
@@ -132,7 +146,10 @@ def run_sync_series():
         logger.error(f"Error fetching IMDb series list: {e}")
         return
 
+    excluded_series = get_excluded_titles(sonarr_url, sonarr_api_key, 'tv')
     filtered_series = filter_items(series_list, series_min_year, series_max_year, series_min_rating, tmdb_api_key, 'tv')
+    filtered_series = [series for series in filtered_series if not check_excluded(series['title'], excluded_series)]
+
     imported_series = process_items(filtered_series, sonarr_url, sonarr_api_key, quality_profile_id, root_folder_path, add_to_sonarr)
     r.set('imported_series', json.dumps(imported_series))
     logger.info(f"Series importadas: {imported_series}")
