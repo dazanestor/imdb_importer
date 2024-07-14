@@ -15,10 +15,6 @@ logger = logging.getLogger(__name__)
 
 # Definición de schemas para validación
 class ConfigSchema(Schema):
-    radarr_url = fields.Url(required=True)
-    radarr_api_key = fields.Str(required=True)
-    sonarr_url = fields.Url(required=True)
-    sonarr_api_key = fields.Str(required=True)
     movies_min_year = fields.Int(required=True)
     movies_max_year = fields.Int(required=True)
     movies_min_rating = fields.Float(required=True)
@@ -29,26 +25,29 @@ class ConfigSchema(Schema):
     radarr_root_folder_path = fields.Str(required=True)
     sonarr_quality_profile_id = fields.Int(required=True)
     sonarr_root_folder_path = fields.Str(required=True)
-    tmdb_api_key = fields.Str(required=True)
 
 def read_config():
     with open('config.json', 'r') as f:
         return json.load(f)
 
 def write_config(data):
+    config = read_config()
+    config.update(data)
     with open('config.json', 'w') as f:
-        json.dump(data, f, indent=4)
+        json.dump(config, f, indent=4)
 
-def get_radarr_profiles_and_paths(radarr_url, radarr_api_key):
-    headers = {"X-Api-Key": radarr_api_key}
-    profiles = requests.get(f"{radarr_url}/api/v3/qualityProfile", headers=headers).json()
-    paths = requests.get(f"{radarr_url}/api/v3/rootFolder", headers=headers).json()
+def get_radarr_profiles_and_paths():
+    config = read_config()
+    headers = {"X-Api-Key": config['radarr_api_key']}
+    profiles = requests.get(f"{config['radarr_url']}/api/v3/qualityProfile", headers=headers).json()
+    paths = requests.get(f"{config['radarr_url']}/api/v3/rootFolder", headers=headers).json()
     return profiles, paths
 
-def get_sonarr_profiles_and_paths(sonarr_url, sonarr_api_key):
-    headers = {"X-Api-Key": sonarr_api_key}
-    profiles = requests.get(f"{sonarr_url}/api/v3/qualityProfile", headers=headers).json()
-    paths = requests.get(f"{sonarr_url}/api/v3/rootFolder", headers=headers).json()
+def get_sonarr_profiles_and_paths():
+    config = read_config()
+    headers = {"X-Api-Key": config['sonarr_api_key']}
+    profiles = requests.get(f"{config['sonarr_url']}/api/v3/qualityProfile", headers=headers).json()
+    paths = requests.get(f"{config['sonarr_url']}/api/v3/rootFolder", headers=headers).json()
     return profiles, paths
 
 config = read_config()
@@ -60,27 +59,21 @@ def index():
     radarr_profiles, radarr_paths = [], []
     sonarr_profiles, sonarr_paths = [], []
     
-    if config['radarr_api_key'] and config['radarr_url']:
-        try:
-            radarr_profiles, radarr_paths = get_radarr_profiles_and_paths(config['radarr_url'], config['radarr_api_key'])
-        except requests.exceptions.RequestException as e:
-            flash(f"Error al obtener perfiles y rutas de Radarr: {str(e)}")
+    try:
+        radarr_profiles, radarr_paths = get_radarr_profiles_and_paths()
+    except requests.exceptions.RequestException as e:
+        flash(f"Error al obtener perfiles y rutas de Radarr: {str(e)}")
     
-    if config['sonarr_api_key'] and config['sonarr_url']:
-        try:
-            sonarr_profiles, sonarr_paths = get_sonarr_profiles_and_paths(config['sonarr_url'], config['sonarr_api_key'])
-        except requests.exceptions.RequestException as e:
-            flash(f"Error al obtener perfiles y rutas de Sonarr: {str(e)}")
+    try:
+        sonarr_profiles, sonarr_paths = get_sonarr_profiles_and_paths()
+    except requests.exceptions.RequestException as e:
+        flash(f"Error al obtener perfiles y rutas de Sonarr: {str(e)}")
     
     imported_movies = json.loads(r.get('imported_movies') or '[]')
     imported_series = json.loads(r.get('imported_series') or '[]')
 
     if request.method == 'POST':
         form_data = {
-            "radarr_url": request.form['radarr_url'],
-            "radarr_api_key": request.form['radarr_api_key'],
-            "sonarr_url": request.form['sonarr_url'],
-            "sonarr_api_key": request.form['sonarr_api_key'],
             "movies_min_year": int(request.form['movies_min_year']),
             "movies_max_year": int(request.form['movies_max_year']),
             "movies_min_rating": float(request.form['movies_min_rating']),
@@ -91,7 +84,6 @@ def index():
             "radarr_root_folder_path": request.form['radarr_root_folder_path'],
             "sonarr_quality_profile_id": int(request.form['sonarr_quality_profile_id']),
             "sonarr_root_folder_path": request.form['sonarr_root_folder_path'],
-            "tmdb_api_key": request.form['tmdb_api_key']
         }
         schema = ConfigSchema()
         try:
