@@ -181,3 +181,11 @@ IMDb Importer es una aplicación web que permite sincronizar y agregar automáti
 - `static/`: Directorio que contiene los archivos estáticos (CSS, JS, imágenes).
 - `config.json`: Archivo de configuración para la aplicación.
 - `docker-compose.yml`: Archivo de configuración para Docker Compose.
+
+## Contribución
+
+Si deseas contribuir a este proyecto, por favor realiza un fork del repositorio, crea una rama con tus cambios y envía un pull request.
+
+## Licencia
+
+Este proyecto está licenciado bajo la Licencia GPL. Ver el archivo `LICENSE` para más detalles.
