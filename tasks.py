@@ -87,7 +87,7 @@ def filter_items(items, min_year, max_year, min_rating, tmdb_api_key, media_type
 def process_items(items, url, api_key, quality_profile_id, root_folder_path, add_function):
     with ThreadPoolExecutor() as executor:
         results = executor.map(lambda item: add_function(item, url, api_key, quality_profile_id, root_folder_path), items)
-        return [result['title'] for result in results if result]
+        return [result for result in results if result]
 
 def check_excluded(title, excluded_titles):
     return title.lower() in (excluded.lower() for excluded in excluded_titles)
@@ -124,6 +124,7 @@ def run_sync_movies():
     filtered_movies = [movie for movie in filtered_movies if not check_excluded(movie['title'], excluded_movies)]
 
     imported_movies = process_items(filtered_movies, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, add_to_radarr)
+    imported_movies = [movie['title'] for movie in imported_movies if not movie['exists']]
     r.set('imported_movies', json.dumps(imported_movies))
     logger.info(f"Películas importadas: {imported_movies}")
 
@@ -151,11 +152,21 @@ def run_sync_series():
     filtered_series = [series for series in filtered_series if not check_excluded(series['title'], excluded_series)]
 
     imported_series = process_items(filtered_series, sonarr_url, sonarr_api_key, quality_profile_id, root_folder_path, add_to_sonarr)
+    imported_series = [series['title'] for series in imported_series if not series['exists']]
     r.set('imported_series', json.dumps(imported_series))
     logger.info(f"Series importadas: {imported_series}")
 
 def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path):
     logger.info(f"Adding movie to Radarr: {movie['title']}")
+    headers = {"X-Api-Key": radarr_api_key}
+
+    # Buscar la película por título
+    response = requests.get(f"{radarr_url}/api/v3/movie/lookup?term={requests.utils.quote(movie['title'])}", headers=headers)
+    if response.status_code == 200 and response.json():
+        logger.info(f"Movie already exists in Radarr: {movie['title']}")
+        return {"title": movie['title'], "exists": True}
+
+    # Añadir la película si no existe
     payload = {
         "title": movie['title'],
         "year": 0,
@@ -168,21 +179,25 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
             "searchForMovie": True
         }
     }
-    headers = {"X-Api-Key": radarr_api_key}
-
-    response = requests.get(f"{radarr_url}/api/v3/movie/lookup?term={payload['title']}", headers=headers)
-    if response.status_code == 200 and response.json():
-        logger.info(f"Movie already exists in Radarr: {payload['title']}")
-        return payload
 
     response = requests.post(f"{radarr_url}/api/v3/movie", json=payload, headers=headers)
     if response.status_code != 201:
         logger.error(f"Error adding to Radarr: {response.status_code} {response.reason} {response.text}")
         raise Exception(f"Error adding to Radarr: {response.status_code} {response.reason} {response.text}")
-    return payload
+
+    return {"title": movie['title'], "exists": False}
 
 def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_folder_path):
     logger.info(f"Adding series to Sonarr: {serie['title']}")
+    headers = {"X-Api-Key": sonarr_api_key}
+
+    # Buscar la serie por título
+    response = requests.get(f"{sonarr_url}/api/v3/series/lookup?term={requests.utils.quote(serie['title'])}", headers=headers)
+    if response.status_code == 200 and response.json():
+        logger.info(f"Series already exists in Sonarr: {serie['title']}")
+        return {"title": serie['title'], "exists": True}
+
+    # Añadir la serie si no existe
     payload = {
         "title": serie['title'],
         "year": 0,
@@ -195,15 +210,10 @@ def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_fo
             "searchForSeries": True
         }
     }
-    headers = {"X-Api-Key": sonarr_api_key}
-
-    response = requests.get(f"{sonarr_url}/api/v3/series/lookup?term={payload['title']}", headers=headers)
-    if response.status_code == 200 and response.json():
-        logger.info(f"Series already exists in Sonarr: {payload['title']}")
-        return payload
 
     response = requests.post(f"{sonarr_url}/api/v3/series", json=payload, headers=headers)
     if response.status_code != 201:
         logger.error(f"Error adding to Sonarr: {response.status_code} {response.reason} {response.text}")
         raise Exception(f"Error adding to Sonarr: {response.status_code} {response.reason} {response.text}")
-    return payload
+
+    return {"title": serie['title'], "exists": False}
