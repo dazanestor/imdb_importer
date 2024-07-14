@@ -162,10 +162,12 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
 
     # Buscar la película por título
     response = requests.get(f"{radarr_url}/api/v3/movie/lookup?term={requests.utils.quote(movie['title'])}", headers=headers)
-    if response.status_code == 200 and response.json():
-        logger.info(f"Movie already exists in Radarr: {movie['title']}")
-        return {"title": movie['title'], "exists": True}
-
+    if response.status_code == 200:
+        existing_movies = response.json()
+        if existing_movies:
+            logger.info(f"Movie already exists in Radarr: {movie['title']}")
+            return {"title": movie['title'], "exists": True}
+    
     # Añadir la película si no existe
     payload = {
         "title": movie['title'],
@@ -180,6 +182,8 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
         }
     }
 
+    logger.debug(f"Payload for adding movie to Radarr: {payload}")
+    
     response = requests.post(f"{radarr_url}/api/v3/movie", json=payload, headers=headers)
     if response.status_code != 201:
         logger.error(f"Error adding to Radarr: {response.status_code} {response.reason} {response.text}")
@@ -193,9 +197,11 @@ def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_fo
 
     # Buscar la serie por título
     response = requests.get(f"{sonarr_url}/api/v3/series/lookup?term={requests.utils.quote(serie['title'])}", headers=headers)
-    if response.status_code == 200 and response.json():
-        logger.info(f"Series already exists in Sonarr: {serie['title']}")
-        return {"title": serie['title'], "exists": True}
+    if response.status_code == 200:
+        existing_series = response.json()
+        if existing_series:
+            logger.info(f"Series already exists in Sonarr: {serie['title']}")
+            return {"title": serie['title'], "exists": True}
 
     # Añadir la serie si no existe
     payload = {
@@ -211,6 +217,8 @@ def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_fo
         }
     }
 
+    logger.debug(f"Payload for adding series to Sonarr: {payload}")
+    
     response = requests.post(f"{sonarr_url}/api/v3/series", json=payload, headers=headers)
     if response.status_code != 201:
         logger.error(f"Error adding to Sonarr: {response.status_code} {response.reason} {response.text}")
