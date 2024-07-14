@@ -11,6 +11,46 @@
         <h1>Configuración de IMDb List Sync</h1>
         <form method="post">
             <div class="form-group">
+                <label for="radarr_url">Radarr URL:</label>
+                <input type="url" class="form-control bg-dark text-white" id="radarr_url" name="radarr_url" value="{{ config['radarr_url'] }}">
+            </div>
+            <div class="form-group">
+                <label for="radarr_api_key">Radarr API Key:</label>
+                <input type="text" class="form-control bg-dark text-white" id="radarr_api_key" name="radarr_api_key" value="{{ config['radarr_api_key'] }}">
+            </div>
+            <div class="form-group">
+                <label for="sonarr_url">Sonarr URL:</label>
+                <input type="url" class="form-control bg-dark text-white" id="sonarr_url" name="sonarr_url" value="{{ config['sonarr_url'] }}">
+            </div>
+            <div class="form-group">
+                <label for="sonarr_api_key">Sonarr API Key:</label>
+                <input type="text" class="form-control bg-dark text-white" id="sonarr_api_key" name="sonarr_api_key" value="{{ config['sonarr_api_key'] }}">
+            </div>
+            <div class="form-group">
+                <label for="movies_min_year">Año Mínimo para Películas:</label>
+                <input type="number" class="form-control bg-dark text-white" id="movies_min_year" name="movies_min_year" value="{{ config['movies_min_year'] }}">
+            </div>
+            <div class="form-group">
+                <label for="movies_max_year">Año Máximo para Películas:</label>
+                <input type="number" class="form-control bg-dark text-white" id="movies_max_year" name="movies_max_year" value="{{ config['movies_max_year'] }}">
+            </div>
+            <div class="form-group">
+                <label for="movies_min_rating">Puntuación Mínima para Películas:</label>
+                <input type="number" step="0.1" class="form-control bg-dark text-white" id="movies_min_rating" name="movies_min_rating" value="{{ config['movies_min_rating'] }}">
+            </div>
+            <div class="form-group">
+                <label for="series_min_year">Año Mínimo para Series:</label>
+                <input type="number" class="form-control bg-dark text-white" id="series_min_year" name="series_min_year" value="{{ config['series_min_year'] }}">
+            </div>
+            <div class="form-group">
+                <label for="series_max_year">Año Máximo para Series:</label>
+                <input type="number" class="form-control bg-dark text-white" id="series_max_year" name="series_max_year" value="{{ config['series_max_year'] }}">
+            </div>
+            <div class="form-group">
+                <label for="series_min_rating">Puntuación Mínima para Series:</label>
+                <input type="number" step="0.1" class="form-control bg-dark text-white" id="series_min_rating" name="series_min_rating" value="{{ config['series_min_rating'] }}">
+            </div>
+            <div class="form-group">
                 <label for="radarr_quality_profile_id">Perfil de Calidad de Radarr:</label>
                 <select class="form-control bg-dark text-white" id="radarr_quality_profile_id" name="radarr_quality_profile_id">
                     {% for profile in radarr_profiles %}
@@ -42,31 +82,9 @@
                     {% endfor %}
                 </select>
             </div>
-            <h2>Filtros para Películas</h2>
             <div class="form-group">
-                <label for="movies_min_year">Año Mínimo:</label>
-                <input type="number" class="form-control bg-dark text-white" id="movies_min_year" name="movies_min_year" value="{{ config['movies_min_year'] }}">
-            </div>
-            <div class="form-group">
-                <label for="movies_max_year">Año Máximo:</label>
-                <input type="number" class="form-control bg-dark text-white" id="movies_max_year" name="movies_max_year" value="{{ config['movies_max_year'] }}">
-            </div>
-            <div class="form-group">
-                <label for="movies_min_rating">Puntuación Mínima:</label>
-                <input type="number" step="0.1" class="form-control bg-dark text-white" id="movies_min_rating" name="movies_min_rating" value="{{ config['movies_min_rating'] }}">
-            </div>
-            <h2>Filtros para Series</h2>
-            <div class="form-group">
-                <label for="series_min_year">Año Mínimo:</label>
-                <input type="number" class="form-control bg-dark text-white" id="series_min_year" name="series_min_year" value="{{ config['series_min_year'] }}">
-            </div>
-            <div class="form-group">
-                <label for="series_max_year">Año Máximo:</label>
-                <input type="number" class="form-control bg-dark text-white" id="series_max_year" name="series_max_year" value="{{ config['series_max_year'] }}">
-            </div>
-            <div class="form-group">
-                <label for="series_min_rating">Puntuación Mínima:</label>
-                <input type="number" step="0.1" class="form-control bg-dark text-white" id="series_min_rating" name="series_min_rating" value="{{ config['series_min_rating'] }}">
+                <label for="tmdb_api_key">TMDB API Key:</label>
+                <input type="text" class="form-control bg-dark text-white" id="tmdb_api_key" name="tmdb_api_key" value="{{ config['tmdb_api_key'] }}">
             </div>
             <button type="submit" class="btn btn-primary">Guardar Configuración</button>
         </form>
