@@ -1,6 +1,6 @@
 # List Importer
 
-IMDb Importer es una aplicación web que permite sincronizar y agregar automáticamente películas y series populares desde IMDb a Radarr y Sonarr. Esta aplicación está desarrollada con Flask y Celery para la sincronización automática y periódica de contenidos.
+List Importer es una aplicación web que permite sincronizar y agregar automáticamente películas y series populares desde IMDb a Radarr y Sonarr. Esta aplicación está desarrollada con Flask y Celery para la sincronización automática y periódica de contenidos.
 
 ## Características
 
