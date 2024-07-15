@@ -157,22 +157,24 @@ def run_sync_series():
     logger.info(f"Series importadas: {imported_series}")
     
 def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path):
-    logger.info(f"Adding movie to Radarr: {movie['title']}")
+    logger.info(f"Attempting to add movie to Radarr: {movie['title']}")
     headers = {"X-Api-Key": radarr_api_key}
-
+    
     # Buscar la película por título
     response = requests.get(f"{radarr_url}/api/v3/movie/lookup?term={requests.utils.quote(movie['title'])}", headers=headers)
     if response.status_code == 200:
         existing_movies = response.json()
-        if existing_movies:
-            logger.info(f"Movie already exists in Radarr: {movie['title']}")
-            return {"title": movie['title'], "exists": True}
+        logger.debug(f"Existing movies found: {existing_movies}")
+        for existing_movie in existing_movies:
+            if existing_movie['title'].lower() == movie['title'].lower():
+                logger.info(f"Movie already exists in Radarr: {movie['title']}")
+                return {"title": movie['title'], "exists": True}
     
     # Añadir la película si no existe
     payload = {
         "title": movie['title'],
-        "year": 0,
-        "tmdbId": movie.get('tmdb_id', 0),
+        "year": int(movie.get('year', 0)),
+        "tmdbId": int(movie.get('tmdb_id', 0)),
         "qualityProfileId": quality_profile_id,
         "titleSlug": movie['title'].lower().replace(' ', '-'),
         "monitored": True,
@@ -182,13 +184,17 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
         }
     }
 
-    logger.debug(f"Payload for adding movie to Radarr: {payload}")
+    logger.debug(f"Payload for adding movie to Radarr: {json.dumps(payload, indent=2)}")
     
     response = requests.post(f"{radarr_url}/api/v3/movie", json=payload, headers=headers)
-    if response.status_code != 201:
+    if response.status_code == 409:
+        logger.info(f"Movie already exists (Conflict): {movie['title']}")
+        return {"title": movie['title'], "exists": True}
+    elif response.status_code != 201:
         logger.error(f"Error adding to Radarr: {response.status_code} {response.reason} {response.text}")
         raise Exception(f"Error adding to Radarr: {response.status_code} {response.reason} {response.text}")
 
+    logger.info(f"Successfully added movie to Radarr: {movie['title']}")
     return {"title": movie['title'], "exists": False}
 
 def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_folder_path):
