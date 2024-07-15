@@ -113,17 +113,17 @@ def fetch_tmdb_id(title, tmdb_api_key):
 def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, tmdb_api_key):
     logger.info(f"Attempting to add movie to Radarr: {movie['title']}")
     headers = {"X-Api-Key": radarr_api_key}
-    
+
     # Buscar la película por título
     response = requests.get(f"{radarr_url}/api/v3/movie/lookup?term={requests.utils.quote(movie['title'])}", headers=headers)
     if response.status_code == 200:
         existing_movies = response.json()
         logger.debug(f"Lookup response: {existing_movies}")
         for existing_movie in existing_movies:
-            if existing_movie['title'].lower() == movie['title'].lower():
+            if existing_movie['title'].lower() == movie['title'].lower() or existing_movie['tmdbId'] == movie.get('tmdb_id'):
                 logger.info(f"Movie already exists in Radarr: {movie['title']}")
                 return {"title": movie['title'], "exists": True}
-    
+
     # Obtener el TmdbId si no está presente
     tmdb_id = movie.get('tmdb_id')
     if not tmdb_id or tmdb_id == 0:
@@ -147,14 +147,17 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
     }
 
     logger.debug(f"Payload for adding movie to Radarr: {json.dumps(payload, indent=2)}")
-    
-    response = requests.post(f"{radarr_url}/api/v3/movie", json=payload, headers=headers)
-    if response.status_code == 409:
-        logger.info(f"Movie already exists (Conflict): {movie['title']}")
-        return {"title": movie['title'], "exists": True}
-    elif response.status_code != 201:
-        logger.error(f"Error adding to Radarr: {response.status_code} {response.reason} {response.text}")
-        raise Exception(f"Error adding to Radarr: {response.status_code} {response.reason} {response.text}")
+
+    try:
+        response = requests.post(f"{radarr_url}/api/v3/movie", json=payload, headers=headers)
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as http_err:
+        if response.status_code == 400 and "MovieExistsValidator" in response.text:
+            logger.info(f"Movie already exists according to Radarr: {movie['title']}")
+            return {"title": movie['title'], "exists": True}
+        else:
+            logger.error(f"HTTP error occurred: {http_err}")
+            raise
 
     logger.info(f"Successfully added movie to Radarr: {movie['title']}")
     return {"title": movie['title'], "exists": False}
