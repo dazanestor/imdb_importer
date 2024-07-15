@@ -118,6 +118,7 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
     response = requests.get(f"{radarr_url}/api/v3/movie/lookup?term={requests.utils.quote(movie['title'])}", headers=headers)
     if response.status_code == 200:
         existing_movies = response.json()
+        logger.debug(f"Lookup response: {existing_movies}")
         for existing_movie in existing_movies:
             if existing_movie['title'].lower() == movie['title'].lower():
                 logger.info(f"Movie already exists in Radarr: {movie['title']}")
