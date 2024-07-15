@@ -110,20 +110,23 @@ def fetch_tmdb_id(title, tmdb_api_key):
     logger.warning(f"TMDb ID not found for title: {title}")
     return None
 
+def add_movie_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, tmdb_api_key):
+    return add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, tmdb_api_key)
+
 def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, tmdb_api_key):
     logger.info(f"Attempting to add movie to Radarr: {movie['title']}")
     headers = {"X-Api-Key": radarr_api_key}
-    
+
     # Buscar la película por título
     response = requests.get(f"{radarr_url}/api/v3/movie/lookup?term={requests.utils.quote(movie['title'])}", headers=headers)
     if response.status_code == 200:
         existing_movies = response.json()
         logger.debug(f"Lookup response: {existing_movies}")
         for existing_movie in existing_movies:
-            if existing_movie['title'].lower() == movie['title'].lower():
+            if existing_movie['title'].lower() == movie['title'].lower() or existing_movie['tmdbId'] == movie.get('tmdb_id'):
                 logger.info(f"Movie already exists in Radarr: {movie['title']}")
                 return {"title": movie['title'], "exists": True}
-    
+
     # Obtener el TmdbId si no está presente
     tmdb_id = movie.get('tmdb_id')
     if not tmdb_id or tmdb_id == 0:
@@ -131,6 +134,9 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
         if not tmdb_id:
             logger.error(f"TmdbId not found for movie: {movie['title']}")
             return {"title": movie['title'], "exists": False}
+    
+    # Verifica y registra el tmdb_id obtenido
+    logger.debug(f"TmdbId for movie '{movie['title']}': {tmdb_id}")
 
     # Añadir la película si no existe
     payload = {
@@ -147,20 +153,21 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
     }
 
     logger.debug(f"Payload for adding movie to Radarr: {json.dumps(payload, indent=2)}")
-    
-    response = requests.post(f"{radarr_url}/api/v3/movie", json=payload, headers=headers)
-    if response.status_code == 409:
-        logger.info(f"Movie already exists (Conflict): {movie['title']}")
-        return {"title": movie['title'], "exists": True}
-    elif response.status_code != 201:
-        logger.error(f"Error adding to Radarr: {response.status_code} {response.reason} {response.text}")
-        raise Exception(f"Error adding to Radarr: {response.status_code} {response.reason} {response.text}")
+
+    try:
+        response = requests.post(f"{radarr_url}/api/v3/movie", json=payload, headers=headers)
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as http_err:
+        if response.status_code == 400 and "MovieExistsValidator" in response.text:
+            logger.info(f"Movie already exists according to Radarr: {movie['title']}")
+            return {"title": movie['title'], "exists": True}
+        else:
+            logger.error(f"HTTP error occurred: {http_err}")
+            logger.error(f"Response text: {response.text}")
+            raise
 
     logger.info(f"Successfully added movie to Radarr: {movie['title']}")
     return {"title": movie['title'], "exists": False}
-
-def add_movie_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, tmdb_api_key):
-    return add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, tmdb_api_key)
 
 @app.task
 def run_sync_movies():
@@ -184,6 +191,9 @@ def run_sync_movies():
     excluded_movies = get_excluded_titles(radarr_url, radarr_api_key, 'movie')
     filtered_movies = filter_items(movies_list, movies_min_year, movies_max_year, movies_min_rating, tmdb_api_key, 'movie')
     filtered_movies = [movie for movie in filtered_movies if not check_excluded(movie['title'], excluded_movies)]
+
+    # Registro adicional de depuración
+    logger.debug(f"Filtered movies: {filtered_movies}")
 
     imported_movies = process_items(filtered_movies, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, lambda movie: add_movie_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, tmdb_api_key))
     imported_movies = [movie['title'] for movie in imported_movies if not movie['exists']]
