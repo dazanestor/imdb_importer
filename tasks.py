@@ -155,7 +155,6 @@ def run_sync_series():
     imported_series = [series['title'] for series in imported_series if not series['exists']]
     r.set('imported_series', json.dumps(imported_series))
     logger.info(f"Series importadas: {imported_series}")
-
 def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path):
     logger.info(f"Adding movie to Radarr: {movie['title']}")
     headers = {"X-Api-Key": radarr_api_key}
