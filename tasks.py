@@ -86,7 +86,7 @@ def filter_items(items, min_year, max_year, min_rating, tmdb_api_key, media_type
 
 def process_items(items, url, api_key, quality_profile_id, root_folder_path, add_function):
     with ThreadPoolExecutor() as executor:
-        results = executor.map(lambda item: add_function(item, url, api_key, quality_profile_id, root_folder_path), items)
+        results = executor.map(add_function, items)
         return [result for result in results if result]
 
 def check_excluded(title, excluded_titles):
@@ -158,6 +158,9 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
     logger.info(f"Successfully added movie to Radarr: {movie['title']}")
     return {"title": movie['title'], "exists": False}
 
+def add_movie_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, tmdb_api_key):
+    return add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, tmdb_api_key)
+
 @app.task
 def run_sync_movies():
     config = read_config()
@@ -181,7 +184,7 @@ def run_sync_movies():
     filtered_movies = filter_items(movies_list, movies_min_year, movies_max_year, movies_min_rating, tmdb_api_key, 'movie')
     filtered_movies = [movie for movie in filtered_movies if not check_excluded(movie['title'], excluded_movies)]
 
-    imported_movies = process_items(filtered_movies, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, lambda movie: add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, tmdb_api_key))
+    imported_movies = process_items(filtered_movies, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, lambda movie: add_movie_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, tmdb_api_key))
     imported_movies = [movie['title'] for movie in imported_movies if not movie['exists']]
     r.set('imported_movies', json.dumps(imported_movies))
     logger.info(f"Películas importadas: {imported_movies}")
