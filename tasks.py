@@ -122,9 +122,18 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
     if response.status_code == 200:
         existing_movies = response.json()
         logger.debug(f"Lookup response: {existing_movies}")
+
+        # Comparar títulos y años
         for existing_movie in existing_movies:
-            if existing_movie['title'].lower() == movie['title'].lower() or existing_movie['tmdbId'] == movie.get('tmdb_id'):
-                logger.info(f"Movie already exists in Radarr: {movie['title']}")
+            existing_title = existing_movie['title'].lower()
+            movie_title = movie['title'].lower()
+            existing_year = existing_movie.get('year', 0)
+            movie_year = int(movie.get('year', 0))
+            
+            logger.debug(f"Checking existing movie: {existing_title} ({existing_year}) against {movie_title} ({movie_year})")
+
+            if (existing_title == movie_title and existing_year == movie_year) or existing_movie.get('tmdbId') == movie.get('tmdb_id'):
+                logger.info(f"Movie already exists in Radarr: {movie['title']} ({movie_year})")
                 return {"title": movie['title'], "exists": True}
 
     # Obtener el TmdbId si no está presente
@@ -134,8 +143,7 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
         if not tmdb_id:
             logger.error(f"TmdbId not found for movie: {movie['title']}")
             return {"title": movie['title'], "exists": False}
-    
-    # Verifica y registra el tmdb_id obtenido
+
     logger.debug(f"TmdbId for movie '{movie['title']}': {tmdb_id}")
 
     # Añadir la película si no existe
