@@ -117,25 +117,6 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
     logger.info(f"Attempting to add movie to Radarr: {movie['title']}")
     headers = {"X-Api-Key": radarr_api_key}
 
-    # Buscar la película por título
-    response = requests.get(f"{radarr_url}/api/v3/movie/lookup?term={requests.utils.quote(movie['title'])}", headers=headers)
-    if response.status_code == 200:
-        existing_movies = response.json()
-        logger.debug(f"Lookup response: {existing_movies}")
-
-        # Comparar títulos y años
-        for existing_movie in existing_movies:
-            existing_title = existing_movie['title'].lower()
-            movie_title = movie['title'].lower()
-            existing_year = existing_movie.get('year', 0)
-            movie_year = int(movie.get('year', 0))
-            
-            logger.debug(f"Checking existing movie: {existing_title} ({existing_year}) against {movie_title} ({movie_year})")
-
-            if (existing_title == movie_title and existing_year == movie_year) or existing_movie.get('tmdbId') == movie.get('tmdb_id'):
-                logger.info(f"Movie already exists in Radarr: {movie['title']} ({movie_year})")
-                return {"title": movie['title'], "exists": True}
-
     # Obtener el TmdbId si no está presente
     tmdb_id = movie.get('tmdb_id')
     if not tmdb_id or tmdb_id == 0:
@@ -143,7 +124,8 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
         if not tmdb_id:
             logger.error(f"TmdbId not found for movie: {movie['title']}")
             return {"title": movie['title'], "exists": False}
-
+    
+    # Verifica y registra el tmdb_id obtenido
     logger.debug(f"TmdbId for movie '{movie['title']}': {tmdb_id}")
 
     # Añadir la película si no existe
@@ -176,6 +158,55 @@ def add_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_fo
 
     logger.info(f"Successfully added movie to Radarr: {movie['title']}")
     return {"title": movie['title'], "exists": False}
+
+def fetch_tvdb_id(title, tmdb_api_key):
+    url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={requests.utils.quote(title)}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        data = response.json()
+        if data['results']:
+            return data['results'][0]['id']
+    logger.warning(f"TVDb ID not found for title: {title}")
+    return None
+
+def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_folder_path, tmdb_api_key):
+    logger.info(f"Attempting to add series to Sonarr: {serie['title']}")
+    headers = {"X-Api-Key": sonarr_api_key}
+
+    # Obtener el TvdbId si no está presente
+    tvdb_id = serie.get('tvdb_id')
+    if not tvdb_id or tvdb_id == 0:
+        tvdb_id = fetch_tvdb_id(serie['title'], tmdb_api_key)
+        if not tvdb_id:
+            logger.error(f"TvdbId not found for series: {serie['title']}")
+            return {"title": serie['title'], "exists": False}
+
+    # Añadir la serie si no existe
+    payload = {
+        "title": serie['title'],
+        "year": int(serie.get('year', 0)),
+        "tvdbId": tvdb_id,
+        "qualityProfileId": quality_profile_id,
+        "titleSlug": serie['title'].lower().replace(' ', '-'),
+        "monitored": True,
+        "rootFolderPath": root_folder_path,
+        "addOptions": {
+            "searchForSeries": True
+        }
+    }
+
+    logger.debug(f"Payload for adding series to Sonarr: {json.dumps(payload, indent=2)}")
+    
+    response = requests.post(f"{sonarr_url}/api/v3/series", json=payload, headers=headers)
+    if response.status_code == 409:
+        logger.info(f"Series already exists (Conflict): {serie['title']}")
+        return {"title": serie['title'], "exists": True}
+    elif response.status_code != 201:
+        logger.error(f"Error adding to Sonarr: {response.status_code} {response.reason} {response.text}")
+        raise Exception(f"Error adding to Sonarr: {response.status_code} {response.reason} {response.text}")
+
+    logger.info(f"Successfully added series to Sonarr: {serie['title']}")
+    return {"title": serie['title'], "exists": False}
 
 @app.task
 def run_sync_movies():
@@ -235,51 +266,3 @@ def run_sync_series():
     imported_series = [series['title'] for series in imported_series if not series['exists']]
     r.set('imported_series', json.dumps(imported_series))
     logger.info(f"Series importadas: {imported_series}")
-
-def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_folder_path, tmdb_api_key):
-    logger.info(f"Attempting to add series to Sonarr: {serie['title']}")
-    headers = {"X-Api-Key": sonarr_api_key}
-
-    # Buscar la serie por título
-    response = requests.get(f"{sonarr_url}/api/v3/series/lookup?term={requests.utils.quote(serie['title'])}", headers=headers)
-    if response.status_code == 200:
-        existing_series = response.json()
-        for existing_serie in existing_series:
-            if existing_serie['title'].lower() == serie['title'].lower():
-                logger.info(f"Series already exists in Sonarr: {serie['title']}")
-                return {"title": serie['title'], "exists": True}
-
-    # Obtener el TvdbId si no está presente
-    tvdb_id = serie.get('tvdb_id')
-    if not tvdb_id or tvdb_id == 0:
-        tvdb_id = fetch_tvdb_id(serie['title'], tmdb_api_key)
-        if not tvdb_id:
-            logger.error(f"TvdbId not found for series: {serie['title']}")
-            return {"title": serie['title'], "exists": False}
-
-    # Añadir la serie si no existe
-    payload = {
-        "title": serie['title'],
-        "year": int(serie.get('year', 0)),
-        "tvdbId": tvdb_id,
-        "qualityProfileId": quality_profile_id,
-        "titleSlug": serie['title'].lower().replace(' ', '-'),
-        "monitored": True,
-        "rootFolderPath": root_folder_path,
-        "addOptions": {
-            "searchForSeries": True
-        }
-    }
-
-    logger.debug(f"Payload for adding series to Sonarr: {json.dumps(payload, indent=2)}")
-    
-    response = requests.post(f"{sonarr_url}/api/v3/series", json=payload, headers=headers)
-    if response.status_code == 409:
-        logger.info(f"Series already exists (Conflict): {serie['title']}")
-        return {"title": serie['title'], "exists": True}
-    elif response.status_code != 201:
-        logger.error(f"Error adding to Sonarr: {response.status_code} {response.reason} {response.text}")
-        raise Exception(f"Error adding to Sonarr: {response.status_code} {response.reason} {response.text}")
-
-    logger.info(f"Successfully added series to Sonarr: {serie['title']}")
-    return {"title": serie['title'], "exists": False}
