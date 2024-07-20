@@ -98,7 +98,9 @@ def get_excluded_series_from_endpoint(base_url, api_key):
     excluded_titles = []
     
     while True:
-        response = requests.get(f"{base_url}/api/v3/importlistexclusion/paged?page={page}&pageSize={pageSize}", headers={"X-Api-Key": api_key})
+        full_url = f"{base_url}/api/v3/importlistexclusion/paged?page={page}&pageSize={pageSize}"
+        logger.info(f"Fetching excluded series list from URL: {full_url}")
+        response = requests.get(full_url, headers={"X-Api-Key": api_key})
         if response.status_code != 200:
             raise Exception(f"Error fetching excluded series list: {response.status_code} {response.reason}")
         
@@ -110,7 +112,7 @@ def get_excluded_series_from_endpoint(base_url, api_key):
         page += 1
 
     return excluded_titles
-
+    
 def fetch_series_from_tmdb(title, tmdb_api_key):
     url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={requests.utils.quote(title)}"
     response = requests.get(url)
