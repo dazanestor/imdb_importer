@@ -309,22 +309,3 @@ def run_sync_series():
     imported_series = [series['title'] for series in imported_series if not series['exists']]
     r.set('imported_series', json.dumps(imported_series))
     logger.info(f"Series importadas: {imported_series}")
-
-def get_excluded_series_from_endpoint(base_url, api_key):
-    page = 1
-    pageSize = 100
-    excluded_titles = []
-    
-    while True:
-        response = requests.get(f"{base_url}/api/v3/importlistexclusion/paged?page={page}&pageSize={pageSize}", headers={"X-Api-Key": api_key})
-        if response.status_code != 200:
-            raise Exception(f"Error fetching excluded series list: {response.status_code} {response.reason}")
-        
-        data = response.json()
-        if not data['records']:
-            break
-        
-        excluded_titles.extend(record['title'] for record in data['records'])
-        page += 1
-
-    return excluded_titles
