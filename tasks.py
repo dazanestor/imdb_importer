@@ -110,14 +110,13 @@ def fetch_tmdb_id(title, tmdb_api_key, media_type='movie'):
     logger.warning(f"TMDb ID not found for title: {title}")
     return None
 
-def fetch_tvdb_id(title, tmdb_api_key):
-    url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={requests.utils.quote(title)}"
+def fetch_tvdb_id_from_tmdb(tmdb_id, tmdb_api_key):
+    url = f"https://api.themoviedb.org/3/tv/{tmdb_id}?api_key={tmdb_api_key}"
     response = requests.get(url)
     if response.status_code == 200:
         data = response.json()
-        if data['results']:
-            return data['results'][0].get('id')
-    logger.warning(f"TVDb ID not found for title: {title}")
+        return data.get('external_ids', {}).get('tvdb_id')
+    logger.warning(f"TVDb ID not found for TMDb ID: {tmdb_id}")
     return None
 
 def add_movie_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, root_folder_path, tmdb_api_key):
@@ -170,20 +169,27 @@ def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_fo
     logger.info(f"Attempting to add series to Sonarr: {serie['title']}")
     headers = {"X-Api-Key": sonarr_api_key}
 
-    # Obtener el TvdbId y TmdbId
-    tvdb_id = serie.get('tvdb_id')
+    # Obtener el TmdbId si no está presente
     tmdb_id = serie.get('tmdb_id')
-    
-    if not tvdb_id or tvdb_id == 0:
-        tvdb_id = fetch_tvdb_id(serie['title'], tmdb_api_key)
-        if not tvdb_id:
-            logger.error(f"TvdbId not found for series: {serie['title']}")
-    
     if not tmdb_id or tmdb_id == 0:
         tmdb_id = fetch_tmdb_id(serie['title'], tmdb_api_key, media_type='tv')
         if not tmdb_id:
             logger.error(f"TmdbId not found for series: {serie['title']}")
             return {"title": serie['title'], "exists": False}
+    
+    # Obtener el TvdbId a partir del TmdbId
+    tvdb_id = fetch_tvdb_id_from_tmdb(tmdb_id, tmdb_api_key)
+    if not tvdb_id:
+        logger.error(f"TvdbId not found for series: {serie['title']} with TmdbId: {tmdb_id}")
+        return {"title": serie['title'], "exists": False}
+
+    # Validar el tvdb_id antes de intentar añadir la serie
+    tvdb_validation_url = f"https://api.thetvdb.com/series/{tvdb_id}"
+    validation_headers = {"Authorization": f"Bearer {tmdb_api_key}"}
+    validation_response = requests.get(tvdb_validation_url, headers=validation_headers)
+    if validation_response.status_code != 200:
+        logger.error(f"TvdbId {tvdb_id} is not valid for series: {serie['title']}")
+        return {"title": serie['title'], "exists": False}
     
     # Añadir la serie si no existe
     payload = {
