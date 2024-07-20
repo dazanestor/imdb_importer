@@ -94,7 +94,7 @@ def check_excluded(title, excluded_titles):
 
 def get_excluded_series_from_endpoint(base_url, api_key):
     page = 1
-    pageSize = 100
+    pageSize = 1000
     excluded_titles = []
     
     while True:
