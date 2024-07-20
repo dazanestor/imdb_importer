@@ -168,6 +168,9 @@ def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_fo
             logger.error(f"TmdbId not found for series: {serie['title']}")
             return {"title": serie['title'], "exists": False}
     
+    # Verifica y registra el tmdb_id obtenido
+    logger.debug(f"TmdbId for serie '{serie['title']}': {tmdb_id}")
+
     # Añadir la serie si no existe
     payload = {
         "title": serie['title'],
@@ -184,16 +187,17 @@ def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_fo
 
     logger.debug(f"Payload for adding series to Sonarr: {json.dumps(payload, indent=2)}")
     
-    response = requests.post(f"{sonarr_url}/api/v3/series", json=payload, headers=headers)
-    if response.status_code == 409:
-        logger.info(f"Series already exists (Conflict): {serie['title']}")
-        return {"title": serie['title'], "exists": True}
-    elif response.status_code == 400:
-        logger.error(f"Error adding to Sonarr: {response.status_code} {response.reason} {response.text}")
-        return {"title": serie['title'], "exists": False}
-    elif response.status_code != 201:
-        logger.error(f"Error adding to Sonarr: {response.status_code} {response.reason} {response.text}")
-        raise Exception(f"Error adding to Sonarr: {response.status_code} {response.reason} {response.text}")
+    try:
+        response = requests.post(f"{sonarr_url}/api/v3/series", json=payload, headers=headers)
+        response.raise_for_status()
+    except requests.exceptions.HTTPError as http_err:
+        if response.status_code == 400 and "SeriesExistsValidator" in response.text:
+            logger.info(f"Series already exists according to Sonarr: {serie['title']}")
+            return {"title": serie['title'], "exists": True}
+        else:
+            logger.error(f"HTTP error occurred: {http_err}")
+            logger.error(f"Response text: {response.text}")
+            raise
 
     logger.info(f"Successfully added series to Sonarr: {serie['title']}")
     return {"title": serie['title'], "exists": False}
