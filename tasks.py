@@ -191,13 +191,9 @@ def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_fo
         response = requests.post(f"{sonarr_url}/api/v3/series", json=payload, headers=headers)
         response.raise_for_status()
     except requests.exceptions.HTTPError as http_err:
-        if response.status_code == 400 and "SeriesExistsValidator" in response.text:
-            logger.info(f"Series already exists according to Sonarr: {serie['title']}")
-            return {"title": serie['title'], "exists": True}
-        else:
-            logger.error(f"HTTP error occurred: {http_err}")
-            logger.error(f"Response text: {response.text}")
-            raise
+        logger.error(f"HTTP error occurred: {http_err}")
+        logger.error(f"Response text: {response.text}")  # Agregar el contenido de la respuesta de error
+        raise
 
     logger.info(f"Successfully added series to Sonarr: {serie['title']}")
     return {"title": serie['title'], "exists": False}
