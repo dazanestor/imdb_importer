@@ -163,7 +163,7 @@ def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_fo
     # Obtener el TmdbId si no está presente
     tmdb_id = serie.get('tmdb_id')
     if not tmdb_id or tmdb_id == 0:
-        tmdb_id = fetch_tmdb_id(serie['title'], tmdb_api_key, media_type='tv')
+        tmdb_id = fetch_tmdb_id(serie['title'], tmdb_api_key)
         if not tmdb_id:
             logger.error(f"TmdbId not found for series: {serie['title']}")
             return {"title": serie['title'], "exists": False}
