@@ -92,13 +92,24 @@ def process_items(items, url, api_key, quality_profile_id, root_folder_path, add
 def check_excluded(title, excluded_titles):
     return title.lower() in (excluded.lower() for excluded in excluded_titles)
 
-def get_excluded_titles(url, api_key, media_type):
-    headers = {"X-Api-Key": api_key}
-    endpoint = f"{url}/api/v3/{'movie' if media_type == 'movie' else 'series'}"
-    response = requests.get(endpoint, headers=headers)
-    if response.status_code == 200:
-        return [item['title'] for item in response.json() if item['monitored'] == False]
-    return []
+def get_excluded_series_from_endpoint(base_url, api_key):
+    page = 1
+    pageSize = 1000
+    excluded_titles = []
+    
+    while True:
+        response = requests.get(f"{base_url}/api/v3/importlistexclusion/paged?page={page}&pageSize={pageSize}", headers={"X-Api-Key": api_key})
+        if response.status_code != 200:
+            raise Exception(f"Error fetching excluded series list: {response.status_code} {response.reason}")
+        
+        data = response.json()
+        if not data['records']:
+            break
+        
+        excluded_titles.extend(record['title'] for record in data['records'])
+        page += 1
+
+    return excluded_titles
 
 def fetch_series_from_tmdb(title, tmdb_api_key):
     url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={requests.utils.quote(title)}"
@@ -269,6 +280,8 @@ def run_sync_series():
     series_max_year = config['series_max_year']
     series_min_rating = config['series_min_rating']
     tmdb_api_key = config['tmdb_api_key']
+    exclusion_api_url = config['exclusion_api_url']
+    exclusion_api_key = config['exclusion_api_key']
 
     try:
         logger.info("Obteniendo lista de series de IMDb...")
@@ -277,10 +290,21 @@ def run_sync_series():
         logger.error(f"Error fetching IMDb series list: {e}")
         return
 
-    excluded_series = get_excluded_titles(sonarr_url, sonarr_api_key, 'tv')
+    # Obtener la lista de series excluidas desde el endpoint
+    try:
+        excluded_series = get_excluded_series_from_endpoint(exclusion_api_url, exclusion_api_key)
+        logger.info(f"Series excluidas obtenidas: {excluded_series}")
+    except Exception as e:
+        logger.error(f"Error fetching excluded series list: {e}")
+        return
+    
+    # Filtrar las series según los criterios especificados
     filtered_series = filter_items(series_list, series_min_year, series_max_year, series_min_rating, tmdb_api_key, 'tv')
+    
+    # Excluir las series que están en la lista de exclusión
     filtered_series = [series for series in filtered_series if not check_excluded(series['title'], excluded_series)]
 
+    # Procesar e importar las series
     imported_series = process_items(filtered_series, sonarr_url, sonarr_api_key, quality_profile_id, root_folder_path, lambda series: add_to_sonarr(series, sonarr_url, sonarr_api_key, quality_profile_id, root_folder_path, tmdb_api_key))
     imported_series = [series['title'] for series in imported_series if not series['exists']]
     r.set('imported_series', json.dumps(imported_series))
