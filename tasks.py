@@ -29,7 +29,7 @@ app.conf.beat_schedule = {
     },
     'run-sync-series-every-12-hours': {
         'task': 'tasks.run_sync_series',
-        'schedule': timedelta(hours=12),
+        'schedule': timedelta(hours(12),
     },
 }
 app.conf.timezone = 'UTC'
@@ -101,19 +101,33 @@ def get_excluded_titles_from_endpoint(base_url, api_key, media_type):
 
     if media_type == 'movie':
         response = requests.get(endpoint, headers=headers)
-        response.raise_for_status()
-        excluded_titles = [movie['movieTitle'] for movie in response.json()]
+        if response.status_code != 200:
+            logger.error(f"Failed to fetch movie exclusions: {response.status_code} {response.text}")
+            return excluded_titles
+
+        try:
+            exclusions = response.json()
+            excluded_titles = [movie['movieTitle'] for movie in exclusions]
+        except json.JSONDecodeError as e:
+            logger.error(f"JSON decode error: {e}")
     else:
         page = 1
         pageSize = 1000
         while True:
             response = requests.get(f"{endpoint}?page={page}&pageSize={pageSize}", headers=headers)
-            response.raise_for_status()
-            data = response.json()
-            if not data['records']:
+            if response.status_code != 200:
+                logger.error(f"Failed to fetch series exclusions: {response.status_code} {response.text}")
                 break
-            excluded_titles.extend(record['title'] for record in data['records'])
-            page += 1
+
+            try:
+                data = response.json()
+                if not data['records']:
+                    break
+                excluded_titles.extend(record['title'] for record in data['records'])
+                page += 1
+            except json.JSONDecodeError as e:
+                logger.error(f"JSON decode error: {e}")
+                break
 
     logger.debug(f"Excluded titles from {media_type}: {excluded_titles}")
     return excluded_titles
