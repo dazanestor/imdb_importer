@@ -94,7 +94,7 @@ def check_excluded(title, excluded_titles):
 
 def get_excluded_series_from_endpoint(base_url, api_key):
     page = 1
-    pageSize = 1000
+    pageSize = 100
     excluded_titles = []
     
     while True:
@@ -282,8 +282,8 @@ def run_sync_series():
     series_max_year = config['series_max_year']
     series_min_rating = config['series_min_rating']
     tmdb_api_key = config['tmdb_api_key']
-    exclusion_api_url = config['radarr_url']  # Usamos la URL de Radarr
-    exclusion_api_key = config['radarr_api_key']  # Usamos la clave de API de Radarr
+    exclusion_api_url = config['sonarr_url']  # Usamos la URL de Sonarr
+    exclusion_api_key = config['sonarr_api_key']  # Usamos la clave de API de Sonarr
 
     try:
         logger.info("Obteniendo lista de series de IMDb...")
