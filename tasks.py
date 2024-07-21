@@ -99,35 +99,24 @@ def get_excluded_titles_from_endpoint(base_url, api_key, media_type):
     headers = {"X-Api-Key": api_key}
     excluded_titles = []
 
-    if media_type == 'movie':
-        response = requests.get(endpoint, headers=headers)
-        if response.status_code != 200:
-            logger.error(f"Failed to fetch movie exclusions: {response.status_code} {response.text}")
-            return excluded_titles
+    logger.info(f"Fetching exclusions from {endpoint}")
 
-        try:
-            exclusions = response.json()
+    response = requests.get(endpoint, headers=headers)
+    if response.status_code != 200:
+        logger.error(f"Failed to fetch exclusions: {response.status_code} {response.text}")
+        return excluded_titles
+
+    logger.debug(f"Raw exclusions response: {response.text}")
+
+    try:
+        exclusions = response.json()
+        logger.debug(f"Parsed exclusions: {exclusions}")
+        if media_type == 'movie':
             excluded_titles = [movie['movieTitle'] for movie in exclusions]
-        except json.JSONDecodeError as e:
-            logger.error(f"JSON decode error: {e}")
-    else:
-        page = 1
-        pageSize = 1000
-        while True:
-            response = requests.get(f"{endpoint}?page={page}&pageSize={pageSize}", headers=headers)
-            if response.status_code != 200:
-                logger.error(f"Failed to fetch series exclusions: {response.status_code} {response.text}")
-                break
-
-            try:
-                data = response.json()
-                if not data['records']:
-                    break
-                excluded_titles.extend(record['title'] for record in data['records'])
-                page += 1
-            except json.JSONDecodeError as e:
-                logger.error(f"JSON decode error: {e}")
-                break
+        else:
+            excluded_titles = [series['title'] for series in exclusions['records']]
+    except json.JSONDecodeError as e:
+        logger.error(f"JSON decode error: {e}")
 
     logger.debug(f"Excluded titles from {media_type}: {excluded_titles}")
     return excluded_titles
