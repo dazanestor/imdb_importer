@@ -29,7 +29,7 @@ app.conf.beat_schedule = {
     },
     'run-sync-series-every-12-hours': {
         'task': 'tasks.run_sync_series',
-        'schedule': timedelta(hours(12),
+        'schedule': timedelta(hours=12),
     },
 }
 app.conf.timezone = 'UTC'
