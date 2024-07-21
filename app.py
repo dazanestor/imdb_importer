@@ -77,7 +77,7 @@ def index():
 
     if request.method == 'POST':
         # Depuración: imprime todos los datos del formulario enviados
-        print(request.form)
+        logger.info(f"Datos del formulario enviados: {request.form}")
 
         # Verificar si todos los campos requeridos están presentes
         required_fields = [
