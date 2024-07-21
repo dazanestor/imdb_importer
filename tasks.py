@@ -95,7 +95,11 @@ def check_excluded(title, excluded_titles):
     return excluded
 
 def get_excluded_titles_from_endpoint(base_url, api_key, media_type):
-    endpoint = f"{base_url}/api/v3/exclusions" if media_type == 'movie' else f"{base_url}/api/v3/importlistexclusion/paged"
+    if media_type == 'movie':
+        endpoint = f"{base_url}/api/v3/exclusions"
+    else:
+        endpoint = f"{base_url}/api/v3/importlistexclusion/paged?pageSize=1000"
+    
     headers = {"X-Api-Key": api_key}
     excluded_titles = []
 
@@ -106,11 +110,8 @@ def get_excluded_titles_from_endpoint(base_url, api_key, media_type):
         logger.error(f"Failed to fetch exclusions: {response.status_code} {response.text}")
         return excluded_titles
 
-    logger.debug(f"Raw exclusions response: {response.text}")
-
     try:
         exclusions = response.json()
-        logger.debug(f"Parsed exclusions: {exclusions}")
         if media_type == 'movie':
             excluded_titles = [movie['movieTitle'] for movie in exclusions]
         else:
