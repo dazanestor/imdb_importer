@@ -268,14 +268,19 @@ def run_sync_movies():
 @app.task
 def run_sync_series():
     config = read_config()
-    sonarr_url = config['sonarr_url']
-    sonarr_api_key = config['sonarr_api_key']
-    quality_profile_id = config['sonarr_quality_profile_id']
-    root_folder_path = config['sonarr_root_folder_path']
-    series_min_year = config['series_min_year']
-    series_max_year = config['series_max_year']
-    series_min_rating = config['series_min_rating']
-    tmdb_api_key = config['tmdb_api_key']
+    logger.info(f"Configuración cargada: {config}")
+    try:
+        sonarr_url = config['sonarr_url']
+        sonarr_api_key = config['sonarr_api_key']
+        quality_profile_id = config['sonarr_quality_profile_id']
+        root_folder_path = config['sonarr_root_folder_path']
+        series_min_year = config['series_min_year']
+        series_max_year = config['series_max_year']
+        series_min_rating = config['series_min_rating']
+        tmdb_api_key = config['tmdb_api_key']
+    except KeyError as e:
+        logger.error(f"KeyError: {e} is missing in the configuration.")
+        return
 
     try:
         logger.info("Obteniendo lista de series de IMDb...")
@@ -298,4 +303,3 @@ def run_sync_series():
     imported_series = [series['title'] for series in imported_series if not series['exists']]
     r.set('imported_series', json.dumps(imported_series))
     logger.info(f"Series importadas: {imported_series}")
-    
