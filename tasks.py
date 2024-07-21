@@ -72,12 +72,12 @@ def fetch_item_year_tmdb(title, tmdb_api_key, media_type):
             return results[0].get('release_date', '').split('-')[0] if media_type == 'movie' else results[0].get('first_air_date', '').split('-')[0]
     return None
 
-def filter_items(items, min_year, max_year, min_rating, tmdb_api_key, media_type):
+def filter_items(items, min_year, max_year, min_rating, tmdb_api_key, media_type, excluded_titles):
     def is_valid(item):
         year = fetch_item_year_tmdb(item['title'], tmdb_api_key, media_type)
         if year:
             logger.info(f"Item: {item['title']}, Year: {year}, Rating: {item['rating']}")
-            return min_year <= int(year) <= max_year and item['rating'] >= min_rating
+            return min_year <= int(year) <= max_year and item['rating'] >= min_rating and not check_excluded(item['title'], excluded_titles)
         else:
             logger.warning(f"Year not found for {item['title']}")
             return False
@@ -255,8 +255,7 @@ def run_sync_movies():
         logger.error(f"Error fetching excluded movies list: {e}")
         return
 
-    filtered_movies = filter_items(movies_list, movies_min_year, movies_max_year, movies_min_rating, tmdb_api_key, 'movie')
-    filtered_movies = [movie for movie in filtered_movies if not check_excluded(movie['title'], excluded_movies)]
+    filtered_movies = filter_items(movies_list, movies_min_year, movies_max_year, movies_min_rating, tmdb_api_key, 'movie', excluded_movies)
 
     logger.debug(f"Filtered movies: {filtered_movies}")
 
@@ -271,7 +270,7 @@ def run_sync_series():
     sonarr_url = config['sonarr_url']
     sonarr_api_key = config['sonarr_api_key']
     quality_profile_id = config['sonarr_quality_profile_id']
-    root_folder_path = config['sonarr_root_folder_path']
+    root_folder_path = config['root_folder_path']
     series_min_year = config['series_min_year']
     series_max_year = config['series_max_year']
     series_min_rating = config['series_min_rating']
@@ -291,8 +290,7 @@ def run_sync_series():
         logger.error(f"Error fetching excluded series list: {e}")
         return
     
-    filtered_series = filter_items(series_list, series_min_year, series_max_year, series_min_rating, tmdb_api_key, 'tv')
-    filtered_series = [series for series in filtered_series if not check_excluded(series['title'], excluded_series)]
+    filtered_series = filter_items(series_list, series_min_year, series_max_year, series_min_rating, tmdb_api_key, 'tv', excluded_series)
 
     imported_series = process_items(filtered_series, lambda series: add_to_sonarr(series, sonarr_url, sonarr_api_key, quality_profile_id, root_folder_path, tmdb_api_key))
     imported_series = [series['title'] for series in imported_series if not series['exists']]
