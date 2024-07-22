@@ -8,4 +8,6 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
+COPY config.json /app/config/config.json.default
+
 CMD ["celery", "-A", "tasks", "worker", "--loglevel=info", "--beat"]
