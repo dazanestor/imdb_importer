@@ -18,7 +18,7 @@ services:
       context: .
       dockerfile: Dockerfile.celery
     volumes:
-      - .:/app
+      - config_volume:/app/config
     depends_on:
       - redis
 
