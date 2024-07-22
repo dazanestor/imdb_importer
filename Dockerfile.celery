@@ -12,15 +12,15 @@ COPY . .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copia un archivo de configuración por defecto al contenedor
-COPY config.json /app/config/config.json.default
+#COPY config.json /app/config/config.json.default
 
 # Añade un script de inicio para copiar config.json si no existe
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+#COPY entrypoint.sh /entrypoint.sh
+#RUN chmod +x /entrypoint.sh
 
 # Expone el puerto en el que correrá la aplicación
 EXPOSE 5000
 
 # Define el comando de inicio usando el script de entrada
-ENTRYPOINT ["/entrypoint.sh"]
+#ENTRYPOINT ["/entrypoint.sh"]
 CMD ["celery", "-A", "tasks", "worker", "--loglevel=info", "--beat"]
