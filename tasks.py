@@ -6,16 +6,21 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 import redis
 import logging
+import os
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+CONFIG_PATH = '/app/config/config.json'
+
 def create_celery_app(redis_ip):
     return Celery('tasks', broker=f'redis://{redis_ip}:6379/0')
 
 def read_config():
-    with open('config.json', 'r') as f:
+    if not os.path.exists(CONFIG_PATH):
+        return None
+    with open(CONFIG_PATH, 'r') as f:
         return json.load(f)
 
 config = read_config()
