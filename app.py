@@ -14,6 +14,8 @@ app.secret_key = 'supersecretkey'
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+CONFIG_PATH = '/app/config/config.json'
+
 # Definición de schemas para validación
 class InitialConfigSchema(Schema):
     redis_ip = fields.Str(required=True)
@@ -36,13 +38,14 @@ class FullConfigSchema(InitialConfigSchema):
     series_min_rating = fields.Float(required=True)
 
 def read_config():
-    if not os.path.exists('config.json'):
+    if not os.path.exists(CONFIG_PATH):
         return None
-    with open('config.json', 'r') as f:
+    with open(CONFIG_PATH, 'r') as f:
         return json.load(f)
 
 def write_config(data):
-    with open('config.json', 'w') as f:
+    os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+    with open(CONFIG_PATH, 'w') as f:
         json.dump(data, f, indent=4)
 
 def get_radarr_profiles_and_paths(radarr_url, radarr_api_key):
@@ -151,7 +154,7 @@ def run_sync_series_now():
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    if not os.path.exists('config.json'):
+    if not os.path.exists(CONFIG_PATH):
         app.run(debug=True, host='0.0.0.0')
     else:
         config = read_config()
