@@ -7,5 +7,6 @@ mkdir -p /app/config
 if [ ! -f /app/config/config.json ]; then
   cp /app/config/config.json.default /app/config/config.json
 fi
+cp -R /app/config/config.json /app/config.json
 
 exec "$@"
