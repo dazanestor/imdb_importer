@@ -112,6 +112,30 @@ def index():
 
     return render_template('index.html', config=config, radarr_profiles=radarr_profiles, radarr_paths=radarr_paths, sonarr_profiles=sonarr_profiles, sonarr_paths=sonarr_paths, imported_movies=imported_movies, imported_series=imported_series)
 
+@app.route('/update_filters', methods=['POST'])
+def update_filters():
+    config = read_config()
+    if not config:
+        flash('No se pudo actualizar los filtros porque falta la configuración inicial.')
+        return redirect(url_for('index'))
+
+    config.update({
+        "movies_min_year": int(request.form['movies_min_year']),
+        "movies_max_year": int(request.form['movies_max_year']),
+        "movies_min_rating": float(request.form['movies_min_rating']),
+        "series_min_year": int(request.form['series_min_year']),
+        "series_max_year": int(request.form['series_max_year']),
+        "series_min_rating": float(request.form['series_min_rating'])
+    })
+
+    try:
+        write_config(config)
+        flash('Filtros actualizados exitosamente!')
+    except Exception as e:
+        flash(f"Error al actualizar filtros: {str(e)}")
+
+    return redirect(url_for('index'))
+
 @app.route('/run-sync-movies', methods=['POST'])
 def run_sync_movies_now():
     logger.info("Iniciando sincronización de películas...")
