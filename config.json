@@ -14,5 +14,5 @@
     "sonarr_quality_profile_id": 1,
     "sonarr_root_folder_path": "/series",
     "tmdb_api_key": "your_tmdb_api_key",
-    "redis_ip": "localhost"
+    "redis_ip": "redis"
 }
