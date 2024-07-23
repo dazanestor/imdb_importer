@@ -14,6 +14,9 @@ logger = logging.getLogger(__name__)
 
 CONFIG_PATH = '/app/config/config.json'
 
+# Inicializar un Celery por defecto
+celery = Celery('tasks', broker='redis://redis:6379/0') 
+
 def create_celery_app(redis_ip):
     return Celery('tasks', broker=f'redis://{redis_ip}:6379/0')
 
