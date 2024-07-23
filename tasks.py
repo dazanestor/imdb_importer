@@ -26,7 +26,7 @@ def read_config():
 config = read_config()
 if config is None:
     logger.warning("El archivo de configuración 'config.json' no existe o no se puede leer. Por favor, complete la configuración inicial antes de iniciar Celery.")
-    celery = None
+    celery = Celery('tasks', broker='redis://localhost:6379/0')  # Broker por defecto para evitar errores
 else:
     celery = create_celery_app(config['redis_ip'])
     r = redis.Redis(host=config['redis_ip'], port=6379, db=0)
