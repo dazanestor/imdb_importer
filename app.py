@@ -2,8 +2,6 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from marshmallow import Schema, fields, ValidationError
 import json
 import requests
-from tasks import run_sync_movies, run_sync_series
-import redis
 import logging
 import os
 
@@ -25,17 +23,11 @@ class InitialConfigSchema(Schema):
     sonarr_api_key = fields.Str(required=True)
     tmdb_api_key = fields.Str(required=True)
 
-class FullConfigSchema(Schema):
+class FullConfigSchema(InitialConfigSchema):
     radarr_quality_profile_id = fields.Int(required=True)
     radarr_root_folder_path = fields.Str(required=True)
     sonarr_quality_profile_id = fields.Int(required=True)
     sonarr_root_folder_path = fields.Str(required=True)
-    movies_min_year = fields.Int(required=True)
-    movies_max_year = fields.Int(required=True)
-    movies_min_rating = fields.Float(required=True)
-    series_min_year = fields.Int(required=True)
-    series_max_year = fields.Int(required=True)
-    series_min_rating = fields.Float(required=True)
 
 def read_config():
     if not os.path.exists(CONFIG_PATH):
@@ -80,8 +72,6 @@ def setup():
         try:
             config = schema.load(form_data)
             write_config(config)
-            global r
-            r = redis.Redis(host=config['redis_ip'], port=6379, db=0)
             flash('Configuración inicial guardada exitosamente!')
             return redirect(url_for('setup_step2'))
         except ValidationError as err:
@@ -200,9 +190,7 @@ def run_sync_series_now():
     return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    if not os.path.exists(CONFIG_PATH):
-        app.run(debug=True, host='0.0.0.0')
-    else:
-        config = read_config()
+    config = read_config()
+    if config:
         r = redis.Redis(host=config['redis_ip'], port=6379, db=0)
-        app.run(debug=True, host='0.0.0.0')
+    app.run(debug=True, host='0.0.0.0')
