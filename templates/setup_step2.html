@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Configuración Completa - IMDb List Sync</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='dark-mode.css') }}" rel="stylesheet">
+</head>
+<body class="bg-dark text-white">
+    <div class="container mt-5">
+        <h1>Configuración Completa de IMDb List Sync</h1>
+        <form method="post" action="{{ url_for('setup_step2') }}">
+            <h2>Radarr</h2>
+            <div class="form-group">
+                <label for="radarr_quality_profile_id">Perfil de Calidad de Radarr:</label>
+                <select class="form-control bg-dark text-white" id="radarr_quality_profile_id" name="radarr_quality_profile_id" required>
+                    {% for profile in radarr_profiles %}
+                        <option value="{{ profile.id }}">{{ profile.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="radarr_root_folder_path">Ruta de Carpeta de Radarr:</label>
+                <select class="form-control bg-dark text-white" id="radarr_root_folder_path" name="radarr_root_folder_path" required>
+                    {% for path in radarr_paths %}
+                        <option value="{{ path.path }}">{{ path.path }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <h2>Sonarr</h2>
+            <div class="form-group">
+                <label for="sonarr_quality_profile_id">Perfil de Calidad de Sonarr:</label>
+                <select class="form-control bg-dark text-white" id="sonarr_quality_profile_id" name="sonarr_quality_profile_id" required>
+                    {% for profile in sonarr_profiles %}
+                        <option value="{{ profile.id }}">{{ profile.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="sonarr_root_folder_path">Ruta de Carpeta de Sonarr:</label>
+                <select class="form-control bg-dark text-white" id="sonarr_root_folder_path" name="sonarr_root_folder_path" required>
+                    {% for path in sonarr_paths %}
+                        <option value="{{ path.path }}">{{ path.path }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar Configuración Completa</button>
+        </form>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
