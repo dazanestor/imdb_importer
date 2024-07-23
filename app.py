@@ -4,7 +4,7 @@ import json
 import requests
 import logging
 import os
-import redis
+import redis as redis_lib
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
@@ -74,7 +74,7 @@ def setup():
             config = schema.load(form_data)
             write_config(config)
             global r
-            r = redis.Redis(host=config['redis_ip'], port=6379, db=0)
+            r = redis_lib.Redis(host=config['redis_ip'], port=6379, db=0)
             flash('Configuración inicial guardada exitosamente!')
             return redirect(url_for('setup_step2'))
         except ValidationError as err:
@@ -135,7 +135,7 @@ def index():
         return redirect(url_for('setup'))
     
     global r
-    r = redis.Redis(host=config['redis_ip'], port=6379, db=0)
+    r = redis_lib.Redis(host=config['redis_ip'], port=6379, db=0)
     
     radarr_profiles, radarr_paths = [], []
     sonarr_profiles, sonarr_paths = [], []
@@ -198,5 +198,5 @@ def run_sync_series_now():
 if __name__ == '__main__':
     config = read_config()
     if config:
-        r = redis.Redis(host=config['redis_ip'], port=6379, db=0)
+        r = redis_lib.Redis(host=config['redis_ip'], port=6379, db=0)
     app.run(debug=True, host='0.0.0.0')
