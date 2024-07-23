@@ -73,6 +73,8 @@ def setup():
         try:
             config = schema.load(form_data)
             write_config(config)
+            global r
+            r = redis.Redis(host=config['redis_ip'], port=6379, db=0)
             flash('Configuración inicial guardada exitosamente!')
             return redirect(url_for('setup_step2'))
         except ValidationError as err:
@@ -131,6 +133,9 @@ def index():
     config = read_config()
     if not config:
         return redirect(url_for('setup'))
+    
+    global r
+    r = redis.Redis(host=config['redis_ip'], port=6379, db=0)
     
     radarr_profiles, radarr_paths = [], []
     sonarr_profiles, sonarr_paths = [], []
