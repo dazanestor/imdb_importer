@@ -27,10 +27,10 @@ config = read_config()
 if config is None:
     logger.warning("El archivo de configuración 'config.json' no existe o no se puede leer. Por favor, complete la configuración inicial antes de iniciar Celery.")
 else:
-    app = create_celery_app(config['redis_ip'])
+    celery = create_celery_app(config['redis_ip'])
     r = redis.Redis(host=config['redis_ip'], port=6379, db=0)
 
-    app.conf.beat_schedule = {
+    celery.conf.beat_schedule = {
         'run-sync-movies-every-12-hours': {
             'task': 'tasks.run_sync_movies',
             'schedule': timedelta(hours=12),
@@ -40,7 +40,7 @@ else:
             'schedule': timedelta(hours=12),
         },
     }
-    app.conf.timezone = 'UTC'
+    celery.conf.timezone = 'UTC'
 
     def fetch_imdb_list(url):
         headers = {
@@ -237,7 +237,7 @@ else:
         logger.info(f"Successfully added series to Sonarr: {serie['title']}")
         return {"title": serie['title'], "exists": False}
 
-    @app.task
+    @celery.task
     def run_sync_movies():
         config = read_config()
         radarr_url = config['radarr_url']
@@ -273,7 +273,7 @@ else:
         r.set('imported_movies', json.dumps(imported_movies))
         logger.info(f"Películas importadas: {imported_movies}")
 
-    @app.task
+    @celery.task
     def run_sync_series():
         config = read_config()
         logger.info(f"Configuración cargada: {config}")
