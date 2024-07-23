@@ -4,6 +4,7 @@ import json
 import requests
 import logging
 import os
+import redis
 
 app = Flask(__name__)
 app.secret_key = 'supersecretkey'
