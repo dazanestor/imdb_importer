@@ -23,13 +23,13 @@ class InitialConfigSchema(Schema):
     radarr_api_key = fields.Str(required=True)
     sonarr_url = fields.Url(required=True)
     sonarr_api_key = fields.Str(required=True)
+    tmdb_api_key = fields.Str(required=True)
+
+class FullConfigSchema(Schema):
     radarr_quality_profile_id = fields.Int(required=True)
     radarr_root_folder_path = fields.Str(required=True)
     sonarr_quality_profile_id = fields.Int(required=True)
     sonarr_root_folder_path = fields.Str(required=True)
-    tmdb_api_key = fields.Str(required=True)
-
-class FullConfigSchema(InitialConfigSchema):
     movies_min_year = fields.Int(required=True)
     movies_max_year = fields.Int(required=True)
     movies_min_rating = fields.Float(required=True)
@@ -62,6 +62,10 @@ def get_sonarr_profiles_and_paths(sonarr_url, sonarr_api_key):
 
 @app.route('/setup', methods=['GET', 'POST'])
 def setup():
+    config = read_config()
+    if config and request.method == 'GET':
+        return redirect(url_for('setup_step2'))
+
     if request.method == 'POST':
         form_data = {
             "redis_ip": request.form['redis_ip'],
@@ -69,10 +73,6 @@ def setup():
             "radarr_api_key": request.form['radarr_api_key'],
             "sonarr_url": request.form['sonarr_url'],
             "sonarr_api_key": request.form['sonarr_api_key'],
-            "radarr_quality_profile_id": int(request.form['radarr_quality_profile_id']),
-            "radarr_root_folder_path": request.form['radarr_root_folder_path'],
-            "sonarr_quality_profile_id": int(request.form['sonarr_quality_profile_id']),
-            "sonarr_root_folder_path": request.form['sonarr_root_folder_path'],
             "tmdb_api_key": request.form['tmdb_api_key']
         }
 
@@ -83,11 +83,57 @@ def setup():
             global r
             r = redis.Redis(host=config['redis_ip'], port=6379, db=0)
             flash('Configuración inicial guardada exitosamente!')
-            return redirect(url_for('index'))
+            return redirect(url_for('setup_step2'))
         except ValidationError as err:
             flash(f"Errores de validación: {err.messages}")
 
     return render_template('setup.html')
+
+@app.route('/setup_step2', methods=['GET', 'POST'])
+def setup_step2():
+    config = read_config()
+    if not config:
+        return redirect(url_for('setup'))
+
+    radarr_profiles, radarr_paths = [], []
+    sonarr_profiles, sonarr_paths = [], []
+
+    if config['radarr_api_key'] and config['radarr_url']:
+        try:
+            radarr_profiles, radarr_paths = get_radarr_profiles_and_paths(config['radarr_url'], config['radarr_api_key'])
+        except requests.exceptions.RequestException as e:
+            flash(f"Error al obtener perfiles y rutas de Radarr: {str(e)}")
+
+    if config['sonarr_api_key'] and config['sonarr_url']:
+        try:
+            sonarr_profiles, sonarr_paths = get_sonarr_profiles_and_paths(config['sonarr_url'], config['sonarr_api_key'])
+        except requests.exceptions.RequestException as e:
+            flash(f"Error al obtener perfiles y rutas de Sonarr: {str(e)}")
+
+    if request.method == 'POST':
+        form_data = {
+            "radarr_quality_profile_id": int(request.form['radarr_quality_profile_id']),
+            "radarr_root_folder_path": request.form['radarr_root_folder_path'],
+            "sonarr_quality_profile_id": int(request.form['sonarr_quality_profile_id']),
+            "sonarr_root_folder_path": request.form['sonarr_root_folder_path'],
+            "movies_min_year": config.get('movies_min_year', 1900),
+            "movies_max_year": config.get('movies_max_year', 2100),
+            "movies_min_rating": config.get('movies_min_rating', 0.0),
+            "series_min_year": config.get('series_min_year', 1900),
+            "series_max_year": config.get('series_max_year', 2100),
+            "series_min_rating": config.get('series_min_rating', 0.0)
+        }
+
+        schema = FullConfigSchema()
+        try:
+            config.update(schema.load(form_data))
+            write_config(config)
+            flash('Configuración completa guardada exitosamente!')
+            return redirect(url_for('index'))
+        except ValidationError as err:
+            flash(f"Errores de validación: {err.messages}")
+
+    return render_template('setup_step2.html', radarr_profiles=radarr_profiles, radarr_paths=radarr_paths, sonarr_profiles=sonarr_profiles, sonarr_paths=sonarr_paths)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
