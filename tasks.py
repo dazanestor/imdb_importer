@@ -180,7 +180,7 @@ def add_movie_to_radarr(movie, radarr_url, radarr_api_key, quality_profile_id, r
 def fetch_series_from_tmdb(title, tmdb_api_key):
     url = f"https://api.themoviedb.org/3/search/tv?api_key={tmdb_api_key}&query={requests.utils.quote(title)}"
     response = requests.get(url)
-    if response.status_code == 200):
+    if response.status_code == 200:
         data = response.json()
         if data['results']:
             return data['results'][0]
@@ -189,7 +189,7 @@ def fetch_series_from_tmdb(title, tmdb_api_key):
 def fetch_tvdb_id_from_tmdb_id(tmdb_id, tmdb_api_key):
     url = f"https://api.themoviedb.org/3/tv/{tmdb_id}/external_ids?api_key={tmdb_api_key}"
     response = requests.get(url)
-    if response.status_code == 200):
+    if response.status_code == 200:
         data = response.json()
         return data.get('tvdb_id')
     return None
