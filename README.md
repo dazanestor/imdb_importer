@@ -39,24 +39,7 @@ Asegúrate de definir las siguientes variables de entorno en tu archivo `docker-
     cd imdb_importer
     ```
 
-2. Crea el archivo de configuración `config.json` en el directorio raíz del proyecto con el siguiente contenido:
-
-    ```json
-    {
-        "movies_min_year": 2000,
-        "movies_max_year": 2024,
-        "movies_min_rating": 7.0,
-        "series_min_year": 2000,
-        "series_max_year": 2024,
-        "series_min_rating": 7.0,
-        "radarr_quality_profile_id": 1,
-        "radarr_root_folder_path": "/path/to/radarr/movies",
-        "sonarr_quality_profile_id": 1,
-        "sonarr_root_folder_path": "/path/to/sonarr/series",
-    }
-    ```
-
-3. Crea un archivo `docker-compose.yml` en el directorio raíz del proyecto con el siguiente contenido:
+2. Crea un archivo `docker-compose.yml` en el directorio raíz del proyecto con el siguiente contenido:
 
     ```yaml
     version: '3'
@@ -96,13 +79,13 @@ Asegúrate de definir las siguientes variables de entorno en tu archivo `docker-
           - "6379:6379"
     ```
 
-4. Construye e inicia los servicios con Docker Compose:
+3. Construye e inicia los servicios con Docker Compose:
 
     ```bash
     docker-compose up --build
     ```
 
-5. Accede a la aplicación web en tu navegador:
+4. Accede a la aplicación web en tu navegador:
 
     ```
     http://localhost:5000
