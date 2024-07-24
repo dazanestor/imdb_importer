@@ -52,11 +52,12 @@ def get_sonarr_profiles_and_paths(sonarr_url, sonarr_api_key):
     paths = requests.get(f"{sonarr_url}/api/v3/rootFolder", headers=headers).json()
     return profiles, paths
 
-config = read_config()
-r = redis.Redis(host=config['redis_ip'], port=6379, db=0)
+config_env = read_config()
+r = redis.Redis(host=config_env['redis_ip'], port=6379, db=0)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
+    config = read_config()
     radarr_profiles, radarr_paths = [], []
     sonarr_profiles, sonarr_paths = [], []
 
