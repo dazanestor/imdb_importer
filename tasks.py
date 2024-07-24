@@ -4,47 +4,35 @@ from celery import Celery
 from datetime import timedelta
 import json
 from concurrent.futures import ThreadPoolExecutor
-import redis as redis_lib
+import redis
 import logging
-import os
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-CONFIG_PATH = '/app/config/config.json'
-
-# Inicializar un Celery por defecto
-celery = Celery('tasks', broker='redis://redis:6379/0') 
-
 def create_celery_app(redis_ip):
     return Celery('tasks', broker=f'redis://{redis_ip}:6379/0')
 
 def read_config():
-    if not os.path.exists(CONFIG_PATH):
-        return None
-    with open(CONFIG_PATH, 'r') as f:
+    with open('config.json', 'r') as f:
         return json.load(f)
 
-# Inicializar Celery de forma condicional
 config = read_config()
-if config:
-    celery = create_celery_app(config['redis_ip'])
-    r = redis_lib.Redis(host=config['redis_ip'], port=6379, db=0)
-    
-    celery.conf.beat_schedule = {
-        'run-sync-movies-every-12-hours': {
-            'task': 'tasks.run_sync_movies',
-            'schedule': timedelta(hours=12),
-        },
-        'run-sync-series-every-12-hours': {
-            'task': 'tasks.run_sync_series',
-            'schedule': timedelta(hours=12),
-        },
-    }
-    celery.conf.timezone = 'UTC'
-else:
-    celery = None
+app = create_celery_app(config['redis_ip'])
+r = redis.Redis(host=config['redis_ip'], port=6379, db=0)
+
+app.conf.beat_schedule = {
+    'run-sync-movies-every-12-hours': {
+        'task': 'tasks.run_sync_movies',
+        'schedule': timedelta(hours=12),
+    },
+    'run-sync-series-every-12-hours': {
+        'task': 'tasks.run_sync_series',
+        'schedule': timedelta(hours=12),
+    },
+}
+app.conf.timezone = 'UTC'
 
 def fetch_imdb_list(url):
     headers = {
@@ -55,10 +43,10 @@ def fetch_imdb_list(url):
     }
     response = requests.get(url, headers=headers)
     response.raise_for_status()
-
+    
     soup = BeautifulSoup(response.text, 'html.parser')
     script = soup.find('script', type='application/ld+json')
-
+    
     if script is None:
         raise Exception("No se encontró el script JSON-LD en la página")
 
@@ -111,7 +99,7 @@ def get_excluded_titles_from_endpoint(base_url, api_key, media_type):
         endpoint = f"{base_url}/api/v3/exclusions"
     else:
         endpoint = f"{base_url}/api/v3/importlistexclusion/paged?pageSize=1000"
-
+    
     headers = {"X-Api-Key": api_key}
     excluded_titles = []
 
@@ -241,7 +229,7 @@ def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_fo
     logger.info(f"Successfully added series to Sonarr: {serie['title']}")
     return {"title": serie['title'], "exists": False}
 
-@celery.task
+@app.task
 def run_sync_movies():
     config = read_config()
     radarr_url = config['radarr_url']
@@ -277,7 +265,7 @@ def run_sync_movies():
     r.set('imported_movies', json.dumps(imported_movies))
     logger.info(f"Películas importadas: {imported_movies}")
 
-@celery.task
+@app.task
 def run_sync_series():
     config = read_config()
     logger.info(f"Configuración cargada: {config}")
@@ -307,7 +295,7 @@ def run_sync_series():
     except Exception as e:
         logger.error(f"Error fetching excluded series list: {e}")
         return
-
+    
     filtered_series = filter_items(series_list, series_min_year, series_max_year, series_min_rating, tmdb_api_key, 'tv')
     filtered_series = [series for series in filtered_series if not check_excluded(series['title'], excluded_series)]
 
