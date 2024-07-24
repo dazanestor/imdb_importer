@@ -11,13 +11,7 @@ COPY . .
 # Instala las dependencias
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copia un archivo de configuración por defecto al contenedor
-COPY config.json /app/config/config.json.default
-
-# Añade un script de inicio para copiar config.json si no existe
-
 # Expone el puerto en el que correrá la aplicación
 EXPOSE 5000
 
-# Define el comando de inicio usando el script de entrada
 CMD ["python", "app.py"]
