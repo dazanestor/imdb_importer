@@ -123,10 +123,6 @@ Asegúrate de definir las siguientes variables de entorno en tu archivo `docker-
 
     ```json
     {
-        "radarr_url": "URL_DE_RADARR",
-        "radarr_api_key": "API_KEY_DE_RADARR",
-        "sonarr_url": "URL_DE_SONARR",
-        "sonarr_api_key": "API_KEY_DE_SONARR",
         "movies_min_year": 2000,
         "movies_max_year": 2024,
         "movies_min_rating": 7.0,
@@ -137,8 +133,6 @@ Asegúrate de definir las siguientes variables de entorno en tu archivo `docker-
         "radarr_root_folder_path": "/path/to/radarr/movies",
         "sonarr_quality_profile_id": 1,
         "sonarr_root_folder_path": "/path/to/sonarr/series",
-        "tmdb_api_key": "API_KEY_DE_TMDB",
-        "redis_ip": "localhost"
     }
     ```
 
