@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from marshmallow import Schema, fields, ValidationError
 import json
 import requests
-from tasks import run_sync_movies, run_sync_series
+import os
 import redis
 import logging
 
@@ -15,10 +15,6 @@ logger = logging.getLogger(__name__)
 
 # Definición de schemas para validación
 class ConfigSchema(Schema):
-    radarr_url = fields.Url(required=True)
-    radarr_api_key = fields.Str(required=True)
-    sonarr_url = fields.Url(required=True)
-    sonarr_api_key = fields.Str(required=True)
     movies_min_year = fields.Int(required=True)
     movies_max_year = fields.Int(required=True)
     movies_min_rating = fields.Float(required=True)
@@ -29,11 +25,16 @@ class ConfigSchema(Schema):
     radarr_root_folder_path = fields.Str(required=True)
     sonarr_quality_profile_id = fields.Int(required=True)
     sonarr_root_folder_path = fields.Str(required=True)
-    tmdb_api_key = fields.Str(required=True)
 
 def read_config():
-    with open('config.json', 'r') as f:
-        return json.load(f)
+    return {
+        'radarr_url': os.getenv('RADARR_URL', 'http://localhost:7878'),
+        'radarr_api_key': os.getenv('RADARR_API_KEY', 'default_radarr_api_key'),
+        'sonarr_url': os.getenv('SONARR_URL', 'http://localhost:8989'),
+        'sonarr_api_key': os.getenv('SONARR_API_KEY', 'default_sonarr_api_key'),
+        'tmdb_api_key': os.getenv('TMDB_API_KEY', 'default_tmdb_api_key'),
+        'redis_ip': os.getenv('REDIS_IP', 'redis')
+    }
 
 def write_config(data):
     with open('config.json', 'w') as f:
@@ -56,7 +57,6 @@ r = redis.Redis(host=config['redis_ip'], port=6379, db=0)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
-    config = read_config()
     radarr_profiles, radarr_paths = [], []
     sonarr_profiles, sonarr_paths = [], []
 
@@ -81,11 +81,10 @@ def index():
 
         # Verificar si todos los campos requeridos están presentes
         required_fields = [
-            'radarr_url', 'radarr_api_key', 'sonarr_url', 'sonarr_api_key',
             'movies_min_year', 'movies_max_year', 'movies_min_rating',
             'series_min_year', 'series_max_year', 'series_min_rating',
             'radarr_quality_profile_id', 'radarr_root_folder_path',
-            'sonarr_quality_profile_id', 'sonarr_root_folder_path', 'tmdb_api_key'
+            'sonarr_quality_profile_id', 'sonarr_root_folder_path'
         ]
 
         missing_fields = [field for field in required_fields if field not in request.form]
@@ -94,10 +93,6 @@ def index():
             return redirect(url_for('index'))
 
         form_data = {
-            "radarr_url": request.form['radarr_url'],
-            "radarr_api_key": request.form['radarr_api_key'],
-            "sonarr_url": request.form['sonarr_url'],
-            "sonarr_api_key": request.form['sonarr_api_key'],
             "movies_min_year": int(request.form['movies_min_year']),
             "movies_max_year": int(request.form['movies_max_year']),
             "movies_min_rating": float(request.form['movies_min_rating']),
@@ -107,8 +102,7 @@ def index():
             "radarr_quality_profile_id": int(request.form['radarr_quality_profile_id']),
             "radarr_root_folder_path": request.form['radarr_root_folder_path'],
             "sonarr_quality_profile_id": int(request.form['sonarr_quality_profile_id']),
-            "sonarr_root_folder_path": request.form['sonarr_root_folder_path'],
-            "tmdb_api_key": request.form['tmdb_api_key']
+            "sonarr_root_folder_path": request.form['sonarr_root_folder_path']
         }
 
         schema = ConfigSchema()
