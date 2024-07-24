@@ -27,8 +27,23 @@ class ConfigSchema(Schema):
     sonarr_root_folder_path = fields.Str(required=True)
 
 def read_config():
-    with open('config.json', 'r') as f:
-        return json.load(f)
+    try:
+        with open('config.json', 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        # Configuración por defecto si el archivo no existe
+        return {
+            "movies_min_year": 2020,
+            "movies_max_year": 2024,
+            "movies_min_rating": 7.0,
+            "series_min_year": 2020,
+            "series_max_year": 2024,
+            "series_min_rating": 7.0,
+            "radarr_quality_profile_id": 1,
+            "radarr_root_folder_path": "/movies",
+            "sonarr_quality_profile_id": 1,
+            "sonarr_root_folder_path": "/series"
+        }
 
 def write_config(data):
     with open('config.json', 'w') as f:
@@ -54,6 +69,7 @@ config_env = {
     'tmdb_api_key': os.getenv('TMDB_API_KEY', 'default_tmdb_api_key'),
     'redis_ip': os.getenv('REDIS_IP', 'redis')
 }
+
 r = redis.Redis(host=config_env['redis_ip'], port=6379, db=0)
 
 @app.route('/', methods=['GET', 'POST'])
@@ -78,10 +94,8 @@ def index():
     imported_series = json.loads(r.get('imported_series') or '[]')
 
     if request.method == 'POST':
-        # Depuración: imprime todos los datos del formulario enviados
         logger.info(f"Datos del formulario enviados: {request.form}")
 
-        # Verificar si todos los campos requeridos están presentes
         required_fields = [
             'movies_min_year', 'movies_max_year', 'movies_min_rating',
             'series_min_year', 'series_max_year', 'series_min_rating',
