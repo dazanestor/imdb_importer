@@ -57,7 +57,7 @@ Asegúrate de definir las siguientes variables de entorno en tu archivo `docker-
           REDIS_IP: ${REDIS_IP:-redis_ip}
         depends_on:
           - redis
-          - celery
+          - worker
 
       worker:
         build:
