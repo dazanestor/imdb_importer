@@ -54,7 +54,7 @@ Asegúrate de definir las siguientes variables de entorno en tu archivo `docker-
           SONARR_URL: ${SONARR_URL:-http://localhost:8989}
           SONARR_API_KEY: ${SONARR_API_KEY:-your_sonarr_api_key}
           TMDB_API_KEY: ${TMDB_API_KEY:-your_tmdb_api_key}
-          REDIS_IP: ${REDIS_IP:-redis}
+          REDIS_IP: ${REDIS_IP:-redis_ip}
         depends_on:
           - redis
           - celery
