@@ -14,6 +14,20 @@ List Importer es una aplicación web que permite sincronizar y agregar automáti
 - Docker
 - Docker Compose
 
+## Configuración
+
+La configuración de las URLs y claves API para Radarr, Sonarr y TMDB se realiza a través de variables de entorno. Los otros parámetros de configuración (filtros de años, calificación, rutas de carpetas y perfiles de calidad) se manejan a través de la interfaz web.
+
+### Variables de Entorno
+
+Asegúrate de definir las siguientes variables de entorno en tu archivo `docker-compose.yml` o en tu entorno de ejecución:
+
+- `RADARR_URL`: URL de tu instancia de Radarr.
+- `RADARR_API_KEY`: Clave API de Radarr.
+- `SONARR_URL`: URL de tu instancia de Sonarr.
+- `SONARR_API_KEY`: Clave API de Sonarr.
+- `TMDB_API_KEY`: Clave API de TMDB.
+- `REDIS_IP`: Dirección IP de Redis (por defecto es `redis`).
 ## Instalación
 
 ### Instalación con Docker Compose
@@ -21,7 +35,7 @@ List Importer es una aplicación web que permite sincronizar y agregar automáti
 1. Clona el repositorio:
 
     ```bash
-    git clone https://github.com/dazanestor/imdb_importer.git
+    git clone https://github.com/dazanestor/list_importer.git
     cd imdb_importer
     ```
 
@@ -29,10 +43,6 @@ List Importer es una aplicación web que permite sincronizar y agregar automáti
 
     ```json
     {
-        "radarr_url": "URL_DE_RADARR",
-        "radarr_api_key": "API_KEY_DE_RADARR",
-        "sonarr_url": "URL_DE_SONARR",
-        "sonarr_api_key": "API_KEY_DE_SONARR",
         "movies_min_year": 2000,
         "movies_max_year": 2024,
         "movies_min_rating": 7.0,
@@ -43,8 +53,6 @@ List Importer es una aplicación web que permite sincronizar y agregar automáti
         "radarr_root_folder_path": "/path/to/radarr/movies",
         "sonarr_quality_profile_id": 1,
         "sonarr_root_folder_path": "/path/to/sonarr/series",
-        "tmdb_api_key": "API_KEY_DE_TMDB",
-        "redis_ip": "redis"
     }
     ```
 
@@ -57,32 +65,35 @@ List Importer es una aplicación web que permite sincronizar y agregar automáti
         build: .
         ports:
           - "5000:5000"
-        volumes:
-          - .:/app
         environment:
-          - FLASK_ENV=development
+          RADARR_URL: ${RADARR_URL:-http://localhost:7878}
+          RADARR_API_KEY: ${RADARR_API_KEY:-your_radarr_api_key}
+          SONARR_URL: ${SONARR_URL:-http://localhost:8989}
+          SONARR_API_KEY: ${SONARR_API_KEY:-your_sonarr_api_key}
+          TMDB_API_KEY: ${TMDB_API_KEY:-your_tmdb_api_key}
+          REDIS_IP: ${REDIS_IP:-redis}
         depends_on:
           - redis
           - celery
 
+      worker:
+        build:
+          context: .
+          dockerfile: Dockerfile.celery
+        environment:
+          RADARR_URL: ${RADARR_URL:-http://localhost:7878}
+          RADARR_API_KEY: ${RADARR_API_KEY:-your_radarr_api_key}
+          SONARR_URL: ${SONARR_URL:-http://localhost:8989}
+          SONARR_API_KEY: ${SONARR_API_KEY:-your_sonarr_api_key}
+          TMDB_API_KEY: ${TMDB_API_KEY:-your_tmdb_api_key}
+          REDIS_IP: ${REDIS_IP:-redis}
+        depends_on:
+          - redis
+    
       redis:
         image: "redis:alpine"
-
-      celery:
-        build: .
-        command: celery -A tasks worker --loglevel=info
-        volumes:
-          - .:/app
-        depends_on:
-          - redis
-
-      celery-beat:
-        build: .
-        command: celery -A tasks beat --loglevel=info
-        volumes:
-          - .:/app
-        depends_on:
-          - redis
+        ports:
+          - "6379:6379"
     ```
 
 4. Construye e inicia los servicios con Docker Compose:
