@@ -36,7 +36,7 @@ Asegúrate de definir las siguientes variables de entorno en tu archivo `docker-
 
     ```bash
     git clone https://github.com/dazanestor/list_importer.git
-    cd imdb_importer
+    cd list_importer
     ```
 
 2. Crea un archivo `docker-compose.yml` en el directorio raíz del proyecto con el siguiente contenido:
@@ -96,8 +96,8 @@ Asegúrate de definir las siguientes variables de entorno en tu archivo `docker-
 1. Clona el repositorio:
 
     ```bash
-    git clone https://github.com/dazanestor/imdb_importer.git
-    cd imdb_importer
+    git clone https://github.com/dazanestor/list_importer.git
+    cd list_importer
     ```
 
 2. Crea y activa un entorno virtual:
