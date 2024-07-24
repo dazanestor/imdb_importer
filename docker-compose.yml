@@ -14,9 +14,6 @@ services:
       SONARR_API_KEY: ${SONARR_API_KEY}
       TMDB_API_KEY: ${TMDB_API_KEY}
       REDIS_IP: ${REDIS_IP}
-      
-    volumes:
-      - config_volume:/app/config
     depends_on:
       - redis
       - worker
@@ -32,8 +29,6 @@ services:
       SONARR_API_KEY: ${SONARR_API_KEY}
       TMDB_API_KEY: ${TMDB_API_KEY}
       REDIS_IP: ${REDIS_IP}
-    volumes:
-      - config_volume:/app/config
     depends_on:
       - redis
 
@@ -41,6 +36,3 @@ services:
     image: "redis:alpine"
     ports:
       - "6379:6379"
-      
-volumes:
-  config_volume:   
