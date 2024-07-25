@@ -21,8 +21,8 @@ List Importer es una aplicación web que permite sincronizar y agregar automáti
 1. Clona el repositorio:
 
     ```bash
-    git clone https://github.com/dazanestor/imdb_importer.git
-    cd imdb_importer
+    git clone https://github.com/dazanestor/list_importer.git
+    cd list_importer
     ```
 
 2. Crea el archivo de configuración `config.json` en el directorio raíz del proyecto con el siguiente contenido:
@@ -58,9 +58,7 @@ List Importer es una aplicación web que permite sincronizar y agregar automáti
         ports:
           - "5000:5000"
         volumes:
-          - .:/app
-        environment:
-          - FLASK_ENV=development
+          - .:/app/config
         depends_on:
           - redis
           - celery
@@ -72,7 +70,7 @@ List Importer es una aplicación web que permite sincronizar y agregar automáti
         build: .
         command: celery -A tasks worker --loglevel=info
         volumes:
-          - .:/app
+          - .:/app/config
         depends_on:
           - redis
 
@@ -80,7 +78,7 @@ List Importer es una aplicación web que permite sincronizar y agregar automáti
         build: .
         command: celery -A tasks beat --loglevel=info
         volumes:
-          - .:/app
+          - .:/app/config
         depends_on:
           - redis
     ```
@@ -102,8 +100,8 @@ List Importer es una aplicación web que permite sincronizar y agregar automáti
 1. Clona el repositorio:
 
     ```bash
-    git clone https://github.com/dazanestor/imdb_importer.git
-    cd imdb_importer
+    git clone https://github.com/dazanestor/list_importer.git
+    cd list_importer
     ```
 
 2. Crea y activa un entorno virtual:
