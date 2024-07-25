@@ -32,11 +32,11 @@ class ConfigSchema(Schema):
     tmdb_api_key = fields.Str(required=True)
 
 def read_config():
-    with open('config.json', 'r') as f:
+    with open('/app/config/config.json', 'r') as f:
         return json.load(f)
 
 def write_config(data):
-    with open('config.json', 'w') as f:
+    with open('/app/config/config.json', 'w') as f:
         json.dump(data, f, indent=4)
 
 def get_radarr_profiles_and_paths(radarr_url, radarr_api_key):
@@ -76,10 +76,8 @@ def index():
     imported_series = json.loads(r.get('imported_series') or '[]')
 
     if request.method == 'POST':
-        # Depuración: imprime todos los datos del formulario enviados
         logger.info(f"Datos del formulario enviados: {request.form}")
 
-        # Verificar si todos los campos requeridos están presentes
         required_fields = [
             'radarr_url', 'radarr_api_key', 'sonarr_url', 'sonarr_api_key',
             'movies_min_year', 'movies_max_year', 'movies_min_rating',
