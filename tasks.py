@@ -15,7 +15,7 @@ def create_celery_app(redis_ip):
     return Celery('tasks', broker=f'redis://{redis_ip}:6379/0')
 
 def read_config():
-    with open('config.json', 'r') as f:
+    with open('/app/config/config.json', 'r') as f:
         return json.load(f)
 
 config = read_config()
