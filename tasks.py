@@ -6,7 +6,6 @@ import json
 from concurrent.futures import ThreadPoolExecutor
 import redis
 import logging
-import os
 
 # Configuración de logging
 logging.basicConfig(level=logging.INFO)
@@ -19,17 +18,9 @@ def read_config():
     with open('config.json', 'r') as f:
         return json.load(f)
 
-config_env = {
-    'radarr_url': os.getenv('RADARR_URL', 'http://localhost:7878'),
-    'radarr_api_key': os.getenv('RADARR_API_KEY', 'default_radarr_api_key'),
-    'sonarr_url': os.getenv('SONARR_URL', 'http://localhost:8989'),
-    'sonarr_api_key': os.getenv('SONARR_API_KEY', 'default_sonarr_api_key'),
-    'tmdb_api_key': os.getenv('TMDB_API_KEY', 'default_tmdb_api_key'),
-    'redis_ip': os.getenv('REDIS_IP', 'redis')
-}
-
-app = create_celery_app(config_env['redis_ip'])
-r = redis.Redis(host=config_env['redis_ip'], port=6379, db=0)
+config = read_config()
+app = create_celery_app(config['redis_ip'])
+r = redis.Redis(host=config['redis_ip'], port=6379, db=0)
 
 app.conf.beat_schedule = {
     'run-sync-movies-every-12-hours': {
@@ -241,14 +232,14 @@ def add_to_sonarr(serie, sonarr_url, sonarr_api_key, quality_profile_id, root_fo
 @app.task
 def run_sync_movies():
     config = read_config()
-    radarr_url = config_env['radarr_url']
-    radarr_api_key = config_env['radarr_api_key']
+    radarr_url = config['radarr_url']
+    radarr_api_key = config['radarr_api_key']
     quality_profile_id = config['radarr_quality_profile_id']
     root_folder_path = config['radarr_root_folder_path']
     movies_min_year = config['movies_min_year']
     movies_max_year = config['movies_max_year']
     movies_min_rating = config['movies_min_rating']
-    tmdb_api_key = config_env['tmdb_api_key']
+    tmdb_api_key = config['tmdb_api_key']
 
     try:
         logger.info("Obteniendo lista de películas de IMDb...")
@@ -278,14 +269,18 @@ def run_sync_movies():
 def run_sync_series():
     config = read_config()
     logger.info(f"Configuración cargada: {config}")
-    sonarr_url = config_env['sonarr_url']
-    sonarr_api_key = config_env['sonarr_api_key']
-    quality_profile_id = config['sonarr_quality_profile_id']
-    root_folder_path = config['sonarr_root_folder_path']
-    series_min_year = config['series_min_year']
-    series_max_year = config['series_max_year']
-    series_min_rating = config['series_min_rating']
-    tmdb_api_key = config_env['tmdb_api_key']
+    try:
+        sonarr_url = config['sonarr_url']
+        sonarr_api_key = config['sonarr_api_key']
+        quality_profile_id = config['sonarr_quality_profile_id']
+        root_folder_path = config['sonarr_root_folder_path']
+        series_min_year = config['series_min_year']
+        series_max_year = config['series_max_year']
+        series_min_rating = config['series_min_rating']
+        tmdb_api_key = config['tmdb_api_key']
+    except KeyError as e:
+        logger.error(f"KeyError: {e} is missing in the configuration.")
+        return
 
     try:
         logger.info("Obteniendo lista de series de IMDb...")
