@@ -50,7 +50,7 @@
                 <label for="series_min_rating">Puntuación Mínima para Series:</label>
                 <input type="number" step="0.1" class="form-control bg-dark text-white" id="series_min_rating" name="series_min_rating" value="{{ config['series_min_rating'] }}">
             </div>
-           <div class="form-group">
+            <div class="form-group">
                 <label for="radarr_quality_profile_id">Perfil de Calidad de Radarr:</label>
                 <select class="form-control bg-dark text-white" id="radarr_quality_profile_id" name="radarr_quality_profile_id">
                     {% for profile in radarr_profiles %}
