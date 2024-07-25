@@ -51,36 +51,34 @@ List Importer es una aplicación web que permite sincronizar y agregar automáti
 3. Crea un archivo `docker-compose.yml` en el directorio raíz del proyecto con el siguiente contenido:
 
     ```yaml
-    version: '3'
+    version: '3.8'
+    
     services:
       web:
-        build: .
+        build:
+          context: .
+          dockerfile: Dockerfile
         ports:
           - "5000:5000"
         volumes:
-          - .:/app/config
+          - ./:/app/config
         depends_on:
           - redis
-          - celery
-
+          - worker
+    
+      worker:
+        build:
+          context: .
+          dockerfile: Dockerfile.celery
+        volumes:
+          - ./:/app/config
+        depends_on:
+          - redis
+    
       redis:
         image: "redis:alpine"
-
-      celery:
-        build: .
-        command: celery -A tasks worker --loglevel=info
-        volumes:
-          - .:/app/config
-        depends_on:
-          - redis
-
-      celery-beat:
-        build: .
-        command: celery -A tasks beat --loglevel=info
-        volumes:
-          - .:/app/config
-        depends_on:
-          - redis
+        ports:
+          - "6379:6379"
     ```
 
 4. Construye e inicia los servicios con Docker Compose:
